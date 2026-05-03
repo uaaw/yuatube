@@ -1,0 +1,22 @@
+<html>
+<script src="/js/tailwindcss.js"></script>
+<body class="bg-gray-900 text-white">
+  <div class="mt-4 p-4 bg-gray-800 rounded-lg shadow-lg">
+    <div class="mt-2 space-y-4">
+      <% cm.contents.filter(c => c.comment).forEach(CommentThread => { %>   
+        <div class="flex items-start bg-gray-700 p-4 rounded-lg transition-transform transform hover:scale-101">
+          <img loading="lazy" src="<%= CommentThread.comment?.author.thumbnails[0].url %>" class="w-10 h-10 rounded-full">
+          <div class="ml-3">
+            <p class="text-lg font-semibold">
+              <a href="/gen/c/<%= CommentThread.comment?.author.id %>" target="_blank" class="text-blue-400 hover:underline"><%= CommentThread.comment?.author.name || "(Unable to parse author name)" %></a>
+            </p>
+            <p class="text-gray-300 text-lg mt-1">
+              <%- (CommentThread.comment?.content.text || "(Unable to parse comment)").replace(/\n/g, "<br>") %>
+            </p>
+          </div>
+        </div>
+      <% }); %>
+    </div>
+  </div>
+</body>
+</html>

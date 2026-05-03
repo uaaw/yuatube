@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ニコニコ動画</title>
+    <script src="/js/tailwindcss.js"></script>
+    <link rel="stylesheet" href="/css/page.css">
+</head>
+<body class="bg-gray-900 text-white">
+    <header class="bg-gray-800 p-4 flex justify-between items-center">
+        <a href="/sonota/niko" class="text-gray-300 hover:text-white">← ニコニコ</a>
+        <h1 class="text-xl font-bold">ニコニコ動画</h1>
+        <div></div>
+    </header>
+
+    <div class="container mx-auto p-6 max-w-3xl">
+        <form method="get" action="/sonota/niko/umekomi" class="flex gap-2 mb-6">
+            <input type="text" name="url" value="<%= input || '' %>"
+                placeholder="URLまたは動画ID (例: sm12345678)..."
+                class="flex-1 p-3 rounded bg-gray-700 text-white outline-none focus:ring-2 focus:ring-white">
+            <button type="submit" class="bg-gray-200 hover:bg-white text-gray-900 px-6 py-3 rounded font-bold transition">
+                表示
+            </button>
+        </form>
+
+        <% if (nicoData) { %>
+        <div>
+            <% if (nicoData.stream) { %>
+            <div class="mb-4">
+                <% if (nicoData.stream.type === 'hls') { %>
+                <video id="nicoVideo" controls class="w-full rounded" style="background:#000;max-height:70vh;"></video>
+                <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.15/dist/hls.min.js"></script>
+                <script>
+                (function() {
+                    const video = document.getElementById('nicoVideo');
+                    const src = '<%- nicoData.stream.url.replace(/'/g, "\\'") %>';
+                    if (typeof Hls !== 'undefined' && Hls.isSupported()) {
+                        const hls = new Hls();
+                        hls.loadSource(src);
+                        hls.attachMedia(video);
+                    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+                        video.src = src;
+                    } else {
+                        video.parentElement.innerHTML = '<div class="bg-red-800 text-white p-4 rounded">このブラウザではHLS再生に対応していません。</div>';
+                    }
+                })();
+                </script>
+                <% } else { %>
+                <video controls class="w-full rounded" style="max-height:70vh;" src="<%= nicoData.stream.url %>"></video>
+                <% } %>
+            </div>
+            <% } else if (error) { %>
+            <div class="bg-yellow-800 text-white p-4 rounded mb-4">
+                <p>動画ストリームを取得できませんでした: <%= error %></p>
+                <p class="text-sm mt-2">
+                    <a href="https://www.nicovideo.jp/watch/<%= nicoData.videoId %>" target="_blank" class="text-blue-400 hover:underline">
+                        ニコニコ動画で見る →
+                    </a>
+                </p>
+            </div>
+            <% } %>
+
+            <% if (nicoData.title) { %>
+            <h2 class="text-xl font-bold mb-1"><%= nicoData.title %></h2>
+            <% } %>
+            <% if (nicoData.viewCount && nicoData.viewCount !== '0') { %>
+            <p class="text-sm text-gray-400 mb-3">再生数: <%= nicoData.viewCount %></p>
+            <% } %>
+            <% if (nicoData.description) { %>
+            <p class="text-sm text-gray-300 mt-2 whitespace-pre-wrap"><%= nicoData.description %></p>
+            <% } %>
+        </div>
+        <% } %>
+    </div>
+</body>
+</html>

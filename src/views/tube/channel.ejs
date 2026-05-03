@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%- channel.metadata.title || "存在しないチャンネル" %></title>
+    <link rel="stylesheet" href="/css/page.css">
+    <script src="/js/tailwindcss.js"></script>
+    <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+    <script src="https://code.jquery.com/jquery-3.5.1.js"></script>
+    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+    <script src="/js/tube.js"></script>
+</head>
+<body class="bg-gray-900 text-white">
+    <header class="bg-gray-800 p-4 flex justify-between items-center">
+        <form action="/gen/s" method="get" class="w-1/2" id="searchForm">
+            <input type="text" name="q" id="searchbox" placeholder="検索" class="searchbox w-full p-2 rounded bg-gray-700 text-white">
+        </form>
+        <nav class="space-x-4">
+            <a href="/gen" class="text-gray-300 hover:text-white">ホーム</a>
+            <a href="/gen/cl/history" class="text-gray-300 hover:text-white">履歴</a>
+        </nav>
+    </header>
+  
+    <div class="container mx-auto p-3 pt-2">
+      　<img src="<%- channel.header?.content?.banner?.image?.[0]?.url || ""  %>" class="w-full h-auto mr-4">
+        <div class="bg-gray-800 p-8 rounded-lg shadow-lg mt-4">
+            <div class="flex items-center mb-6">
+                <img src="<%- channel.metadata.avatar[0].url || ""  %>" class="w-20 h-20 rounded-full mr-4">
+                <div>
+                    <h1 class="text-3xl font-bold"><%- channel.metadata.title %></h1>
+                    <p class="text-gray-400 text-sm"><%- channel.header.content.metadata.metadata_rows[0].metadata_parts[0].text || ""  %>  -  <%- channel.header.content.metadata.metadata_rows[1].metadata_parts[1].text || ""  %></p>
+                    <p class="text-gray-500 text-sm mt-2"><%- channel.header.content.metadata.metadata_rows[1].metadata_parts[0].text || ""  %></p>
+                </div>
+            </div>
+          <p class="text-gray-400 mt-4"><%- channel.metadata.description || ""  %></p>
+        </div>
+
+<div class="mt-6">
+    <div class="relative inline-block w-full">
+        <button id="dropdownButton" class="bg-gray-800 text-white px-4 py-2 rounded w-full text-left">
+            <span id="selectedTab">最近の動画</span>
+            <span class="float-right">▼</span>
+        </button>
+        <ul id="dropdownMenu" class="absolute w-full bg-gray-800 text-white mt-2 rounded hidden z-10">
+            <li class="p-2 hover:bg-gray-700 cursor-pointer" onclick="selectRecentVideos()">
+                最近の動画
+            </li>
+            <% channel.shelves?.forEach((shelf, index) => { %>
+                <li class="p-2 hover:bg-gray-700 cursor-pointer" onclick="selectTab('<%= shelf.title.text %>', <%= index %>)">
+                    <%= shelf.title.text %>
+                </li>
+            <% }); %>
+        </ul>
+    </div>
+    
+    <div class="recent-videos mt-4" id="recentVideos">
+        <h2 class="text-xl font-bold text-white mb-2">最近の動画</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            <% recentVideos.items.forEach(video => { %>
+                <div class="result-item bg-gray-700 p-4 rounded">
+                    <a href="/gen/watch/<%= video.id %>" class="thumbnail">
+                        <img loading="lazy" src="/gen/back/vi/<%= video.id %>/mqdefault.jpg" alt="<%= video.title %>" class="w-auto h-48 rounded">
+                        <span class="video-duration"><%= video.duration %></span>
+                    </a>
+                    <p class="text-lg font-bold mt-2 text-white"><%= video.title %></p>
+                </div>
+            <% }); %>
+        </div>
+    </div>
+    
+    <% channel.shelves?.forEach((shelf, index) => { %>
+        <div class="shelf-content mt-4 <%= index === 0 ? '' : 'hidden' %>" id="shelf-<%= index %>" data-tab-index="<%= index %>">
+            <h2 class="text-xl font-bold text-white mb-2"><%= shelf.title.text %></h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                <% shelf.content?.items?.forEach(video => { %>
+                  <% if (video.type.endsWith("Video")) { %>
+                    <div class="result-item bg-gray-700 p-4 rounded">
+                        <a href="/gen/watch/<%= video.id %>" class="thumbnail">
+                            <img loading="lazy" src="/gen/back/vi/<%= video.id %>/mqdefault.jpg" alt="<%= video.title %>" class="w-auto h-48 rounded">
+                            <span class="video-duration"><%= video.duration %></span>
+                        </a>
+                        <p class="text-lg font-bold mt-2 text-white"><%= video.title %></p>
+                        <p class="text-xs text-gray-400"><%= video.short_view_count || video.views %> - <%= video.published %></p>
+                    </div>
+              <% } else if (video.type.endsWith("Playlist")) { %>
+                <div class="bg-gray-600 p-4 rounded">
+                  <a href="/gen/p/<%= video.id %>">
+                    <img src="/vi/<%= video?.endpoint?.payload?.videoId || video.first_videos[0]?.id %>/mqdefault.jpg" alt="<%= video.title.text %>" class="w-full h-auto rounded">
+                  </a>
+                    <div class="mt-2">
+                        <p class="text-sm text-gray-400"><a href="/gen/u/<%= video.author.id %>"><%= video.author.name %></a></p>
+                        <p class="text-lg font-bold">プレイリスト(<%= video.video_count?.text %>本以上の動画)</p>
+                    </div>
+                </div>
+    　　　　　　<% } else if (video.type.endsWith("Channel")) { %>
+                <div class="bg-gray-700 p-4 rounded">
+                  <a href="/gen/c/<%= video.author.id %>">
+                    <img src="<%= video.author.thumbnails[0].url %>" alt="<%= video.author.name %>" class="w-full h-auto rounded">
+                  </a>
+                    <div class="mt-2">
+                        <p class="text-lg font-bold"><%= video.author.name %></p>
+                        <p class="text-xs text-gray-500"><%= video.subscribers.text %> • <%= video.videos?.text || video.video_count?.text %></p>
+                    </div>
+                </div>
+              <% } %>
+                <% }); %>
+            </div>
+        </div>
+    <% }); %>
+</div>
+
+<script>
+const dropdownButton = document.getElementById("dropdownButton");
+const dropdownMenu = document.getElementById("dropdownMenu");
+const selectedTab = document.getElementById("selectedTab");
+const shelves = document.querySelectorAll(".shelf-content");
+const recentVideosContainer = document.getElementById("recentVideos");
+
+dropdownButton.addEventListener("click", () => {
+    dropdownMenu.classList.toggle("hidden");
+});
+
+function selectTab(title, index) {
+    selectedTab.textContent = title;
+    dropdownMenu.classList.add("hidden");
+    shelves.forEach((shelf, i) => {
+        shelf.classList.toggle("hidden", i !== index);
+    });
+    recentVideosContainer.classList.add("hidden");
+}
+
+function selectRecentVideos() {
+    selectedTab.textContent = '最近の動画';
+    dropdownMenu.classList.add("hidden");
+    shelves.forEach(shelf => shelf.classList.add("hidden"));
+    recentVideosContainer.classList.remove("hidden");
+}
+
+document.addEventListener("click", (event) => {
+    if (!dropdownButton.contains(event.target) && !dropdownMenu.contains(event.target)) {
+        dropdownMenu.classList.add("hidden");
+    }
+});
+</script>
+                      
+</body>
+</html>                  

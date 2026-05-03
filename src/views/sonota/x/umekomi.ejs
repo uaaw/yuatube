@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>X - 投稿</title>
+    <script src="/js/tailwindcss.js"></script>
+    <link rel="stylesheet" href="/css/page.css">
+    <style>.tweet-card { border-left: 3px solid #38bdf8; }</style>
+</head>
+<body class="bg-gray-900 text-white">
+    <header class="bg-gray-800 p-4 flex justify-between items-center">
+        <a href="/sonota/x" class="text-gray-300 hover:text-white">← X</a>
+        <h1 class="text-xl font-bold">X 投稿</h1>
+        <a href="/sonota/x/other" class="text-sky-400 hover:text-sky-300 text-sm">その他 →</a>
+    </header>
+
+    <div class="container mx-auto p-6 max-w-2xl">
+        <form method="get" action="/sonota/x/umekomi" class="flex gap-2 mb-6">
+            <input type="text" name="url" value="<%= url || '' %>"
+                placeholder="ポストのURL (https://x.com/...)..."
+                class="flex-1 p-3 rounded bg-gray-700 text-white outline-none focus:ring-2 focus:ring-sky-500">
+            <button type="submit" class="bg-sky-600 hover:bg-sky-500 px-6 py-3 rounded font-bold transition">
+                表示
+            </button>
+        </form>
+
+        <% if (error) { %>
+        <div class="bg-red-800 text-white p-4 rounded mb-4">
+            <p>エラー: <%= error %></p>
+        </div>
+        <% } %>
+
+        <% if (tweet) { %>
+        <div class="tweet-card bg-gray-800 p-4 rounded-lg">
+            <div class="flex items-center gap-3 mb-3">
+                <% if (tweet.userImage) { %>
+                <img src="<%= tweet.userImage %>" alt="icon" class="w-10 h-10 rounded-full">
+                <% } %>
+                <div>
+                    <p class="font-bold"><%= tweet.userName %></p>
+                    <p class="text-sm text-gray-400">@<%= tweet.screenName %></p>
+                </div>
+                <% if (tweet.screenName) { %>
+                <a href="https://x.com/<%= tweet.screenName %>/status/<%= tweet.id %>"
+                   target="_blank" rel="noopener"
+                   class="ml-auto text-sky-400 hover:text-sky-300 text-sm">X で見る</a>
+                <% } %>
+            </div>
+            <p class="text-gray-100 whitespace-pre-wrap break-words"><%= tweet.text %></p>
+            <div class="flex gap-6 mt-3 text-sm text-gray-400">
+                <span>返信 <%= tweet.replies %></span>
+                <span>RT <%= tweet.retweets %></span>
+                <span>いいね <%= tweet.likes %></span>
+            </div>
+        </div>
+        <% } %>
+    </div>
+</body>
+</html>

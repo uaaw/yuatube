@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>お気に入り - 天才ぷろぐらまー</title>
+    <link rel="stylesheet" href="/css/page.css">
+    <script src="/js/tailwindcss.js"></script>
+</head>
+<body class="bg-gray-900 text-white">
+    <header style="padding:12px 20px;display:flex;justify-content:space-between;align-items:center;gap:12px;">
+        <h1 style="font-size:1rem;font-weight:700;color:#fff;">お気に入り曲</h1>
+        <nav style="display:flex;gap:16px;align-items:center;">
+            <a href="/tensais" style="color:#b9bbbe;text-decoration:none;font-weight:600;font-size:0.9rem;">ホーム</a>
+        </nav>
+    </header>
+
+    <div id="favorites-list" class="max-w-2xl mx-auto p-4 flex flex-col gap-4">
+        <p class="text-center text-gray-400">お気に入りの曲がありません</p>
+    </div>
+
+    <div id="player-container" style="display:none;position:fixed;bottom:0;left:0;width:100%;background:#141414;border-top:1px solid rgba(88,101,242,0.25);padding:12px 20px;">
+        <iframe id="player" style="width:100%;height:80px;border:none;"></iframe>
+    </div>
+
+<script>
+    function loadFavorites() {
+        const favorites = JSON.parse(localStorage.getItem('favorites')) || [];
+        const list = document.getElementById('favorites-list');
+        list.innerHTML = '';
+
+        if (favorites.length === 0) {
+            list.innerHTML = '<p class="text-center text-gray-400">お気に入りの曲がありません</p>';
+            return;
+        }
+
+        favorites.forEach(track => {
+            const el = document.createElement('div');
+            el.className = 'flex items-center gap-4 p-4 border border-gray-700 bg-gray-800 rounded-lg result-item';
+            el.innerHTML = `
+                <img src="${track.artwork_url}" alt="Artwork" class="w-20 h-20 rounded">
+                <div class="flex-1">
+                    <p class="font-bold text-lg">${track.title}</p>
+                </div>
+                <div class="flex gap-2">
+                    <button class="play-btn" style="padding:10px;" data-track-id="${track.id}"><img src="/img/play.jpg" class="w-6 h-6"></button>
+                    <button class="favorite-btn" style="background:none;box-shadow:none;padding:8px;" data-id="${track.id}">
+                        <img src="${isFavorite(track.id) ? '/img/favorite.jpg' : '/img/nofavorite.jpg'}" alt="Favorite" class="w-6 h-6">
+                    </button>
+                </div>
+            `;
+            list.appendChild(el);
+        });
+    }
+
+    document.addEventListener('click', function(event) {
+        const playBtn = event.target.closest('.play-btn');
+        if (playBtn) playTrack(playBtn.getAttribute('data-track-id'));
+        const favBtn = event.target.closest('.favorite-btn');
+        if (favBtn) toggleFavorite(favBtn.getAttribute('data-id'));
+    });
+
+    function playTrack(trackId) {
+        document.getElementById('player').src = `https://w.soundcloud.com/player/?url=https%3A//api.soundcloud.com/tracks/${trackId}&color=%23ff5500&auto_play=true`;
+        document.getElementById('player-container').style.display = 'block';
+    }
+
+    function isFavorite(trackId) {
+        return (JSON.parse(localStorage.getItem('favorites')) || []).some(t => t.id === trackId);
+    }
+
+    function toggleFavorite(trackId) {
+        let favorites = JSON.parse(localStorage.getItem('favorites')) || [];
+        const index = favorites.findIndex(t => t.id === trackId);
+        if (index !== -1) {
+            if (confirm('本当にお気に入りを解除しますか？')) {
+                favorites.splice(index, 1);
+                showMessage('お気に入りを解除したわ');
+            }
+        }
+        localStorage.setItem('favorites', JSON.stringify(favorites));
+        loadFavorites();
+    }
+
+    loadFavorites();
+
+    function showMessage(text) {
+        const el = document.createElement('div');
+        el.style.cssText = 'position:fixed;top:16px;right:16px;background:rgba(20,20,20,0.96);border:1px solid rgba(88,101,242,0.4);color:#fff;padding:16px 20px;border-radius:10px;box-shadow:0 8px 30px rgba(0,0,0,0.5);z-index:9999;max-width:340px;font-size:0.9rem;transition:transform 0.3s,opacity 0.3s;cursor:pointer;';
+        el.innerHTML = `<div style="display:flex;align-items:flex-start;gap:12px;"><span>ℹ︎ ${text}</span><button style="background:none;box-shadow:none;color:#b9bbbe;font-size:1.2rem;padding:0;min-width:20px;line-height:1;">&times;</button></div>`;
+        document.body.appendChild(el);
+        const close = () => { el.style.opacity='0'; el.style.transform='translateX(120%)'; setTimeout(()=>el.remove(),300); };
+        const timer = setTimeout(close, 3500);
+        el.querySelector('button').addEventListener('click', ()=>{ clearTimeout(timer); close(); });
+    }
+</script>
+</body>
+</html>

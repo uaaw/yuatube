@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= res.correctedQuery %> - 検索</title>
+    <link rel="stylesheet" href="/css/page.css">
+    <script src="/js/tailwindcss.js"></script>
+    <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+    <script src="https://code.jquery.com/jquery-3.5.1.js"></script>
+    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+    <script src="/js/tube.js"></script>
+<style>
+.result-item {
+  position: relative;
+}
+
+.thumbnail {
+  position: relative;
+  display: inline-block;
+}
+
+.video-duration {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  background-color: rgba(0, 0, 0, 0.7);
+  color: white;
+  padding: 2px 4px;
+  border-radius: 2px;
+  font-size: 12px;
+}
+</style>
+</head>
+<body class="bg-gray-900 text-white">
+    <header class="bg-gray-800 flex p-4 justify-between items-center">
+        <input type="text" placeholder="Welcome" class="w-full p-2 rounded bg-gray-700 text-white">
+        <nav class="space-x-4">
+            <p class="text-gray-300 hover:text-white">わかめtube</p>
+        </nav>
+    </header>
+    <header class="bg-gray-800 p-4 flex justify-between items-center fixed top-0 left-0 w-full z-10">
+        <form action="/gen/s" method="get" class="w-1/2 relative" id="searchForm">
+            <input type="text" name="q" id="searchbox" placeholder="検索" value="<%= query %>" class="searchbox w-full p-2 pr-10 rounded bg-gray-700 text-white">
+            <button type="button" id="clearBtn" class="absolute right-2 top-1/2 -translate-y-1/2 flex items-center justify-center h-6 w-6 rounded-full hover:bg-gray-400 text-white text-lg leading-none hidden">
+             ×
+            </button>
+        </form>
+        <nav class="space-x-4">
+            <a href="/gen" class="text-gray-300 hover:text-white">ホーム</a>
+            <a href="/gen/cl/history" class="text-gray-300 hover:text-white">履歴</a>
+        </nav>
+    </header>
+  
+   <div class="container mx-auto p-4">
+        <h2 class="text-xl font-bold mb-4">検索結果: <%= res.correctedQuery %></h2>
+        <p class="text-sm text-gray-500 mb-4"><%= res.results %>件のヒット</p>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            <% res.items.forEach(video => { %>
+               <% if (video.type === 'video') { %>
+                <div class="result-item w-auto bg-gray-800 p-4 rounded">
+                    <a href="/gen/watch/<%= video.id %>" class="thumbnail">
+                        <img loading="lazy" src="/gen/back/vi/<%= video.id %>/mqdefault.jpg" alt="<%= video.title %>" class="w-auto h-48 rounded">
+                        <span class="video-duration"><%= video.duration %></span>
+                    </a>
+                    <div class="mt-2 flex items-center">
+                        <a href="/gen/c/<%= video.author.channelID %>" class="flex items-center">
+                            <img src="<%= video.author.bestAvatar.url %>" alt="アイコン" class="w-8 h-8 rounded-full mr-2">
+                            <p class="text-sm text-gray-400"><%= video.author.name %></p>
+                        </a>
+                    </div>
+                    <p class="text-lg font-bold"><%= video.title %></p>
+                    <p class="text-xs text-gray-500"><%= video.uploadedAt %> - <%= video.views %> 回再生</p>
+                </div>
+              <% } else if (video.type === 'playlist') { %>
+                <div class="result-item bg-gray-600 p-4 rounded">
+                  <a href="/gen/p/<%= video.playlistID %>">
+                    <img src="<%= video.firstVideo.bestThumbnail.url.slice(19) %>" alt="<%= video.title %>" class="w-full h-48 rounded">
+                  </a>
+                    <div class="mt-2">
+                        <p class="text-sm text-gray-400"><a href="/gen/u/<%= video.owner.id %>"><%= video.owner.name %></a></p>
+                        <p class="text-lg font-bold">プレイリスト(<%= video.length %>本以上の動画)</p>
+                    </div>
+                </div>
+              <% } else if (video.type === 'channel') { %>
+                <div class="result-item bg-gray-500 p-4 rounded">
+                  <a href="/gen/c/<%= video.channelID %>">
+                    <img src="<%= video.bestAvatar.url %>" alt="<%= video.name %>" class="w-full h-30 rounded">
+                  </a>
+                    <div class="mt-2">
+                        <p class="text-lg font-bold"><%= video.name %></p>
+                        <p class="text-sm text-gray-400"><%= video.description || video.descriptionShort %></p>
+                        <p class="text-xs text-gray-500"><%= video.subscribers %> 登録</p>
+                    </div>
+                </div>
+              <% } %>
+            <% }); %>
+        </div>
+      <div class="flex justify-center mt-10 mb-6">
+    <a class="px-6 py-3 bg-blue-600 text-white text-lg font-semibold rounded-full shadow-md hover:bg-blue-700 transition"
+       href="/gen/ss?q=<%= query %>&p=<%= page+1 %>">
+      もっと読み込む
+    </a>
+</div>
+
+    </div>
+<script>
+window.addEventListener("load", function() {
+  const query = '<%= query %>';
+  if (query) {
+      updateSearchHistory(query);
+  }
+});
+
+const searchBox = document.getElementById('searchbox');
+const clearBtn = document.getElementById('clearBtn');
+function toggleClearButton() {
+    clearBtn.style.display = searchBox.value ? 'block' : 'none';
+}
+searchBox.addEventListener('input', toggleClearButton);
+clearBtn.addEventListener('click', () => {
+   searchBox.value = '';
+   searchBox.focus();
+   toggleClearButton();
+});
+toggleClearButton();
+
+function updateSearchHistory(query) {
+    let history = JSON.parse(localStorage.getItem('searchHistory')) || [];
+    history = history.filter(item => item !== query);
+    history.unshift(query);
+    if (history.length > 16) {
+        history = history.slice(0, 16);
+   }
+   localStorage.setItem('searchHistory', JSON.stringify(history));
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TikTok</title>
+    <script src="/js/tailwindcss.js"></script>
+    <link rel="stylesheet" href="/css/page.css">
+</head>
+<body class="bg-gray-900 text-white">
+    <header class="bg-gray-800 p-4 flex justify-between items-center">
+        <a href="/sonota/tiktok" class="text-gray-300 hover:text-white">← TikTok</a>
+        <h1 class="text-xl font-bold">TikTok</h1>
+        <div></div>
+    </header>
+
+    <div class="container mx-auto p-6 max-w-2xl">
+        <form method="get" action="/sonota/tiktok/umekomi" class="flex gap-2 mb-6">
+            <input type="text" name="url" value="<%= url || '' %>"
+                placeholder="TikTok動画のURLを入力..."
+                class="flex-1 p-3 rounded bg-gray-700 text-white outline-none focus:ring-2 focus:ring-pink-500">
+            <button type="submit" class="bg-pink-600 hover:bg-pink-500 px-6 py-3 rounded font-bold transition">
+                表示
+            </button>
+        </form>
+
+        <% if (error) { %>
+        <div class="bg-red-800 text-white p-4 rounded mb-4">
+            <p>エラー: <%= error %></p>
+        </div>
+        <% } %>
+
+        <% if (videoData) { %>
+        <div class="flex justify-center">
+            <div style="max-width:420px;width:100%;">
+                <% if (videoData.authorName) { %>
+                <p class="text-sm text-gray-400 mb-1">@<%= videoData.authorName %></p>
+                <% } %>
+                <% if (videoData.title) { %>
+                <p class="font-bold mb-3"><%= videoData.title %></p>
+                <% } %>
+                <% if (videoData.videoUrl) { %>
+                <video controls playsinline class="w-full rounded"
+                       poster="<%= videoData.thumbnail %>"
+                       src="/sonota/tiktok/umekomi/proxy?url=<%= encodeURIComponent(videoData.videoUrl) %>">
+                    <p class="text-gray-400 text-sm mt-2">お使いのブラウザは動画再生に対応していません。</p>
+                </video>
+                <% } else { %>
+                <div class="bg-yellow-800 text-white p-4 rounded">
+                    <p>動画URLを取得できませんでした。</p>
+                </div>
+                <% } %>
+            </div>
+        </div>
+        <% } %>
+    </div>
+</body>
+</html>

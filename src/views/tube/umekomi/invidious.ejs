@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= videoInfo.title %></title>
+    <link rel="stylesheet" href="/css/page.css">
+    <script src="/js/tailwindcss.js"></script>
+    <script src="https://code.jquery.com/jquery-3.5.1.js"></script>
+    <script src="/js/tube.js"></script>
+    <script src="/js/watch.js"></script>
+    <link rel="apple-touch-icon" href="/gen/back/vi/<%= videoId %>/maxresdefault.jpg">
+    <style>
+        .iframe-container {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 16 / 9;
+        }
+        .iframe-container iframe {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            border: none;
+        }
+        .comment-box, .related-box {
+            transform: translateX(100%);
+            transition: transform 0.2s ease-in-out;
+        }
+        .comment-box.open, .related-box.open {
+            transform: translateX(0);
+        }
+        .main-container { display: flex; }
+        .video-container { width: 75%; transition: width 0.2s ease-in-out; }
+        .video-container.full { width: 100%; }
+        .sidebar { width: 25%; transition: transform 0.2s ease-in-out; }
+        .sidebar.hidden { transform: translateX(100%); }
+        .related-sidenone { display: none; }
+        .related-sidenone.hidden { display: block; }
+        .expand-sidebar-btn {
+            position: fixed; bottom: 20px; right: 10px;
+            padding: 10px 15px; border-radius: 8px; cursor: pointer; display: none;
+        }
+        .expand-sidebar-btn.visible { display: block; }
+        .toolbar {
+            position: fixed; top: 0; right: -50%; width: 50%;
+            transition: right 0.2s; padding: 20px; z-index: 200;
+        }
+        .toolbar.open { right: 0; }
+        .controlPanel { display: none; }
+        .controlPanel.open { display: block; }
+        .tab-button.active { background-color: #4a5568; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+    </style>
+</head>
+<body>
+    <header style="background:rgba(10,10,10,0.96);border-bottom:1px solid rgba(88,101,242,0.25);backdrop-filter:blur(12px);padding:12px 20px;display:flex;justify-content:space-between;align-items:center;gap:12px;">
+        <form action="/gen/s" method="get" style="flex:1;position:relative;" id="searchForm">
+            <input type="text" name="q" id="searchbox" placeholder="検索" class="searchbox" style="padding-right:36px;">
+            <button type="button" id="clearBtn" class="absolute right-2 top-1/2 -translate-y-1/2 flex items-center justify-center h-6 w-6 rounded-full text-white text-lg leading-none hidden" style="background:rgba(88,101,242,0.3);box-shadow:none;padding:0;">×</button>
+        </form>
+        <button id="toggleToolbar" class="toggle-btn" style="white-space:nowrap;padding:8px 18px;">ツール</button>
+    </header>
+
+    <div class="toolbar" id="toolbar">
+        <button id="closeToolbar" class="toggle-btn" style="position:absolute;top:16px;right:16px;">閉じる</button>
+        <nav style="margin-top:56px;display:flex;flex-direction:column;gap:8px;">
+            <button onclick="window.location.href='/gen'">ホーム</button>
+            <button onclick="window.location.href='/gen/cl/fav'">お気に入り</button>
+            <button onclick="window.location.href='/gen/cl/history'">履歴</button>
+            <button onclick="window.open('/gen/back/vi/<%= videoId %>/maxresdefault.jpg', '_blank');">サムネをダウンロード</button>
+            <button onclick="window.location.href='/gen/watch/<%= videoId %>'">通常再生に切り替え</button>
+        </nav>
+    </div>
+
+    <div class="max-w-6xl mx-auto p-4 main-container" id="mainContainer">
+        <div class="video-container" id="videoContainer">
+            <div class="iframe-container">
+                <video id="invVideo" controls autoplay playsinline
+                       style="position:absolute;top:0;left:0;width:100%;height:100%;background:#000;"
+                       src="<%= streams[0].url %>">
+                </video>
+            </div>
+
+            <div style="display:flex;align-items:center;margin-top:16px;padding:16px;background:rgba(20,20,20,0.95);border:1px solid rgba(88,101,242,0.18);border-radius:10px;">
+                <a href="/gen/c/<%= videoInfo.channelId %>">
+                    <img src="<%= videoInfo.channelIcon %>" alt="アイコン" style="width:48px;height:48px;border-radius:50%;">
+                </a>
+                <div style="margin-left:16px;">
+                    <h2 style="font-size:1rem;font-weight:700;color:#fff;">
+                        <a href="/gen/c/<%= videoInfo.channelId %>" style="color:#fff;text-decoration:none;"><%= videoInfo.channelName %></a>
+                    </h2>
+                    <p style="font-size:0.85rem;color:#b9bbbe;"><%= videoInfo.channelSubsc %></p>
+                </div>
+                <button id="favoriteBtn" style="margin-left:auto;padding:8px;border-radius:50%;background:rgba(88,101,242,0.2);border:1px solid rgba(88,101,242,0.3);box-shadow:none;">
+                    <img id="favoriteIcon" src="/img/nofavorite.jpg" alt="お気に入り" style="width:32px;height:32px;">
+                </button>
+            </div>
+
+            <div style="margin-top:16px;padding:16px;background:rgba(20,20,20,0.95);border:1px solid rgba(88,101,242,0.18);border-radius:10px;">
+                <p style="font-size:0.85rem;color:#b9bbbe;"><%= videoInfo.viewCount %> ・ <%= videoInfo.likeCount %>いいね ・ <%= videoInfo.published %></p>
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;">
+                    <h3 style="font-size:1.4rem;font-weight:700;color:#fff;">
+                        <a href="#mainContainer" style="color:#fff;text-decoration:none;"><%= videoInfo.title %></a>
+                    </h3>
+                    <button style="margin-left:8px;background:none;box-shadow:none;color:#7289DA;font-size:0.875rem;padding:4px 8px;" onclick="toggleDescription(this)">折りたたむ</button>
+                </div>
+                <div class="description" style="margin-top:8px;">
+                    <p style="color:#dcddde;font-size:0.9rem;line-height:1.6;"><%- (videoInfo.description || "").replace(/\n/g, "<br>") %></p>
+                </div>
+            </div>
+
+            <div style="margin-top:16px;padding:16px;background:rgba(20,20,20,0.95);border:1px solid rgba(88,101,242,0.18);border-radius:10px;">
+                <h3 style="font-size:1rem;font-weight:700;color:#fff;">コメント</h3>
+                <div id="commentError2" style="color:#f04747;display:none;"></div>
+                <div id="commentsList2" style="margin-top:8px;"><p style="color:#b9bbbe;">コメントを取得中...</p></div>
+                <button id="retryButton" style="display:none;width:100%;padding:8px;" class="mt-2">再取得</button>
+            </div>
+
+            <div class="related-sidenone" style="margin-top:16px;padding:16px;background:rgba(20,20,20,0.95);border:1px solid rgba(88,101,242,0.18);border-radius:10px;" id="related-sidenone">
+                <h3 style="font-size:1rem;font-weight:700;color:#fff;margin-bottom:12px;">関連動画</h3>
+                <% if (videoInfo.watch_next_feed && videoInfo.watch_next_feed.length > 0) { %>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                    <% videoInfo.watch_next_feed.forEach(video => { %>
+                    <% if (video.type.endsWith("Video")) { %>
+                    <div class="result-item" style="background:rgba(25,25,25,0.9);border:1px solid rgba(88,101,242,0.18);border-radius:10px;padding:12px;">
+                        <a href="/gen/watch/<%= video.id %>" class="thumbnail">
+                            <img loading="lazy" src="/gen/back/vi/<%= video.id %>/mqdefault.jpg" alt="<%= video.title.text %>" class="w-full h-auto rounded">
+                            <% if (video.duration?.text) { %><span class="video-duration"><%= video.duration.text %></span><% } %>
+                        </a>
+                        <div style="display:flex;align-items:center;margin-top:8px;">
+                            <a href="/gen/c/<%= video.author.id %>" style="display:flex;align-items:center;">
+                                <% if (video.author?.thumbnails?.[0]?.url) { %>
+                                <img src="/gen/back/yt3<%- (new URL(video.author.thumbnails[0].url)).pathname %>" alt="アイコン" style="width:28px;height:28px;border-radius:50%;margin-right:6px;">
+                                <% } %>
+                                <p style="font-size:0.8rem;color:#b9bbbe;"><%= video.author.name %></p>
+                            </a>
+                        </div>
+                        <p style="font-weight:700;color:#fff;font-size:0.9rem;margin-top:4px;"><%= video.title.text %></p>
+                        <p style="font-size:0.75rem;color:#72767d;"><%= video.view_count?.text || video.short_view_count?.text || "" %></p>
+                    </div>
+                    <% } %>
+                    <% }); %>
+                </div>
+                <% } %>
+            </div>
+        </div>
+
+        <div id="controlPanel" class="controlPanel" style="background:#0e0e0e;border:1px solid rgba(88,101,242,0.25);color:#fff;padding:24px;border-radius:12px;width:360px;position:fixed;bottom:40px;right:40px;">
+            <button id="closeControlPanel" style="position:absolute;top:8px;right:12px;background:none;box-shadow:none;color:#b9bbbe;font-size:1.4rem;padding:0;">×</button>
+            <div style="display:flex;border-bottom:1px solid rgba(88,101,242,0.25);margin-bottom:16px;">
+                <div id="tabControl" class="tab-button active" style="padding:8px 16px;cursor:pointer;font-weight:600;border-radius:6px 6px 0 0;" data-target="controlTab">コントロール</div>
+                <div id="tabSettings" class="tab-button" style="padding:8px 16px;cursor:pointer;color:#b9bbbe;border-radius:6px 6px 0 0;" data-target="settingsTab">設定</div>
+            </div>
+            <div id="controlTab" class="tab-content active">
+                <div style="display:flex;align-items:center;justify-content:space-between;background:rgba(255,255,255,0.05);border-radius:8px;padding:10px 14px;margin-bottom:10px;">
+                    <label for="loopToggle" style="font-size:0.875rem;cursor:pointer;">ループ再生</label>
+                    <input type="checkbox" id="loopToggle" style="accent-color:#5865F2;width:16px;height:16px;">
+                </div>
+                <% if (streams.length > 1) { %>
+                <div style="margin-bottom:10px;">
+                    <label style="display:block;color:#b9bbbe;font-size:0.85rem;margin-bottom:6px;">画質選択:</label>
+                    <select id="qualitySelect" style="width:100%;background:rgba(20,20,20,0.95);border:1px solid rgba(88,101,242,0.3);color:#fff;padding:6px 8px;border-radius:6px;font-size:0.85rem;outline:none;">
+                        <% streams.forEach(function(s, i) { %>
+                        <option value="<%= s.url %>" <%= i === 0 ? 'selected' : '' %>><%= s.qualityLabel || s.quality %></option>
+                        <% }); %>
+                    </select>
+                </div>
+                <% } %>
+                <div style="margin-bottom:10px;">
+                    <label style="display:block;color:#b9bbbe;font-size:0.85rem;margin-bottom:6px;">サーバー選択:</label>
+                    <select id="serverSelect" style="width:100%;background:rgba(20,20,20,0.95);border:1px solid rgba(88,101,242,0.3);color:#fff;padding:6px 8px;border-radius:6px;font-size:0.85rem;outline:none;">
+                        <% servers.forEach(function(s) { %>
+                        <option value="<%= s.replace('https://', '') %>" <%= s === server ? 'selected' : '' %>><%= s.replace('https://', '') %></option>
+                        <% }); %>
+                    </select>
+                    <button id="applyServer" style="width:100%;padding:8px;margin-top:6px;">適用</button>
+                </div>
+                <p style="color:#b9bbbe;font-size:0.8rem;">使用中: <strong style="color:#fff;"><%= server.replace('https://', '') %></strong></p>
+            </div>
+            <div id="settingsTab" class="tab-content" style="display:none;">
+                <h2 style="font-size:1rem;font-weight:700;margin-bottom:8px;">再生方法の変更</h2>
+                <p style="color:#b9bbbe;font-size:0.85rem;margin-bottom:12px;">現在の再生方法: invidious</p>
+                <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px;">
+                    <label style="display:flex;align-items:flex-start;gap:8px;font-size:0.875rem;cursor:pointer;">
+                        <input type="radio" name="playbackMode" value="normal" style="margin-top:3px;accent-color:#5865F2;">
+                        <div><strong style="color:#fff;">通常</strong><p style="color:#72767d;font-size:0.8rem;">ストリームURLで再生します。</p></div>
+                    </label>
+                    <label style="display:flex;align-items:flex-start;gap:8px;font-size:0.875rem;cursor:pointer;">
+                        <input type="radio" name="playbackMode" value="nocookie" style="margin-top:3px;accent-color:#5865F2;">
+                        <div><strong style="color:#fff;">nocookie</strong><p style="color:#72767d;font-size:0.8rem;">youtube-nocookieを埋め込んで再生します。</p></div>
+                    </label>
+                    <label style="display:flex;align-items:flex-start;gap:8px;font-size:0.875rem;cursor:pointer;">
+                        <input type="radio" name="playbackMode" value="invidious" checked style="margin-top:3px;accent-color:#5865F2;">
+                        <div><strong style="color:#fff;">invidious</strong><p style="color:#72767d;font-size:0.8rem;">Invidiousサーバーを経由して再生します。</p></div>
+                    </label>
+                </div>
+                <button id="saveSettings" style="width:100%;padding:10px;">設定を保存</button>
+            </div>
+        </div>
+
+        <div class="sidebar w-1/4 ml-4" id="sidebar">
+            <button id="toggleControlPanel" style="width:100%;padding:8px;">コントロール</button>
+            <div style="margin-top:12px;">
+                <% if (videoInfo.watch_next_feed?.length) { %>
+                <% videoInfo.watch_next_feed.forEach(video => { %>
+                <% if (!video || !video.type) return; %>
+                <% if (video.type.endsWith("Video")) { %>
+                <div style="background:rgba(25,25,25,0.9);border:1px solid rgba(88,101,242,0.15);border-radius:8px;padding:8px;margin-bottom:8px;" class="result-item">
+                    <a href="/gen/watch/<%= video.id %>">
+                        <img src="/gen/back/vi/<%= video.id %>/mqdefault.jpg" alt="サムネ" style="width:100%;border-radius:6px;">
+                    </a>
+                    <p style="font-size:0.85rem;font-weight:700;color:#fff;margin-top:6px;"><%= video.title.text %></p>
+                    <p style="font-size:0.75rem;color:#72767d;"><%= video.short_view_count?.text || video.view_count?.text || '不明' %></p>
+                </div>
+                <% } %>
+                <% }); %>
+                <% } %>
+            </div>
+        </div>
+    </div>
+
+<script>
+const retryButton = document.getElementById("retryButton");
+
+async function fetchComments() {
+    document.getElementById("commentsList2").innerHTML = "<p style='color:#b9bbbe;'>コメントを取得中...</p>";
+    document.getElementById("commentError2").style.display = "none";
+    retryButton.style.display = "none";
+    try {
+        const response = await fetch("/gen/back/comment/<%= videoId %>");
+        if (!response.ok) throw new Error("サーバーエラー");
+        document.getElementById("commentsList2").innerHTML = await response.text();
+    } catch (error) {
+        document.getElementById("commentError2").textContent = "コメントの取得に失敗しました: " + error.message;
+        document.getElementById("commentError2").style.display = "block";
+        retryButton.style.display = "block";
+    }
+}
+retryButton.addEventListener("click", fetchComments);
+fetchComments();
+
+const searchBox = document.getElementById('searchbox');
+const clearBtn = document.getElementById('clearBtn');
+searchBox.addEventListener('input', () => { clearBtn.style.display = searchBox.value ? 'block' : 'none'; });
+clearBtn.addEventListener('click', () => { searchBox.value = ''; searchBox.focus(); clearBtn.style.display = 'none'; });
+
+
+$('#toggleControlPanel').click(() => $('#controlPanel').toggleClass('open'));
+$('#closeControlPanel').click(() => $('#controlPanel').toggleClass('open'));
+
+$('.tab-button').click(function() {
+    $('.tab-button').removeClass('active');
+    $(this).addClass('active');
+    $('.tab-content').hide().removeClass('active');
+    $('#' + $(this).data('target')).show().addClass('active');
+});
+
+const invVideo = document.getElementById('invVideo');
+
+document.getElementById('loopToggle').addEventListener('change', function() {
+    invVideo.loop = this.checked;
+});
+
+const qualitySelectEl = document.getElementById('qualitySelect');
+if (qualitySelectEl) {
+    qualitySelectEl.addEventListener('change', function() {
+        const t = invVideo.currentTime;
+        invVideo.src = this.value;
+        invVideo.currentTime = t;
+        invVideo.play();
+    });
+}
+
+document.getElementById('applyServer').addEventListener('click', function() {
+    const s = document.getElementById('serverSelect').value;
+    window.location.href = `/gen/yt/invidious/<%= videoId %>?server=${encodeURIComponent(s)}`;
+});
+
+$('#saveSettings').click(function() {
+    const mode = $('input[name="playbackMode"]:checked').val();
+    document.cookie = `playbackMode=${mode}; path=/; max-age=31536000`;
+    $('#controlPanel').toggleClass('open');
+    showMessage(`再生方法を${mode}に変更するわ`);
+    window.location.href = `/gen/redirect/mode/<%= videoId %>?mode=${mode}`;
+});
+
+$('#toggleToolbar').click(() => $('#toolbar').addClass('open'));
+$('#closeToolbar').click(() => $('#toolbar').removeClass('open'));
+
+const videoId = "<%= videoId %>";
+const channelId = "<%= videoInfo.channelId %>";
+const channelName = "<%= videoInfo.channelName %>";
+const videoTitle = "<%= videoInfo.title %>";
+
+function saveToHistory(videoId, channelId, channelName, videoTitle) {
+    let history = JSON.parse(localStorage.getItem("tensaitubehistory") || "[]");
+    history = history.filter(t => t.videoId !== videoId);
+    if (history.length >= 30) history.shift();
+    history.push({ videoId, channelId, channelName, videoTitle });
+    localStorage.setItem("tensaitubehistory", JSON.stringify(history));
+}
+
+function getFavoritesFromLocalStorage() {
+    return JSON.parse(localStorage.getItem("tensaitubefavorites") || "[]");
+}
+function saveToFavorites(videoId, channelId, channelName, videoTitle) {
+    let favorites = getFavoritesFromLocalStorage();
+    const idx = favorites.findIndex(t => t.videoId === videoId);
+    if (idx !== -1) {
+        favorites.splice(idx, 1);
+        showMessage(`${videoTitle}のお気に入りを解除したわ`);
+    } else {
+        favorites.push({ videoId, channelId, channelName, videoTitle });
+        showMessage(`${videoTitle}をお気に入りに追加したわ`);
+    }
+    localStorage.setItem("tensaitubefavorites", JSON.stringify(favorites));
+}
+function checkfav() {
+    const favorites = getFavoritesFromLocalStorage();
+    const isFavorited = favorites.some(t => t.videoId === videoId);
+    document.getElementById("favoriteIcon").src = isFavorited
+        ? "/img/favorite.jpg"
+        : "/img/nofavorite.jpg";
+}
+checkfav();
+document.getElementById("favoriteBtn").addEventListener("click", function() {
+    saveToFavorites(videoId, channelId, channelName, videoTitle);
+    checkfav();
+});
+
+function toggleDescription(button) {
+    const desc = button.closest('div').nextElementSibling;
+    if (desc.classList.contains('hidden')) {
+        desc.classList.remove('hidden');
+        button.textContent = '折りたたむ';
+    } else {
+        desc.classList.add('hidden');
+        button.textContent = '表示する';
+    }
+}
+
+window.addEventListener("load", function() {
+    saveToHistory(videoId, channelId, channelName, videoTitle);
+});
+
+function showMessage(text) {
+    const el = document.createElement('div');
+    el.style.cssText = 'position:fixed;top:16px;right:16px;background:rgba(20,20,20,0.96);border:1px solid rgba(88,101,242,0.4);color:#fff;padding:16px 20px;border-radius:10px;box-shadow:0 8px 30px rgba(0,0,0,0.5);z-index:9999;max-width:340px;font-size:0.9rem;transition:transform 0.3s,opacity 0.3s;cursor:pointer;';
+    el.innerHTML = `<div style="display:flex;align-items:flex-start;gap:12px;"><span>ℹ︎ ${text}</span><button style="background:none;box-shadow:none;color:#b9bbbe;font-size:1.2rem;padding:0;min-width:20px;line-height:1;">&times;</button></div>`;
+    document.body.appendChild(el);
+    const close = () => { el.style.opacity='0'; el.style.transform='translateX(120%)'; setTimeout(()=>el.remove(),300); };
+    const timer = setTimeout(close, 3500);
+    el.querySelector('button').addEventListener('click', ()=>{ clearTimeout(timer); close(); });
+}
+</script>
+</body>
+</html>

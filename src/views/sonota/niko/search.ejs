@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ニコニコ動画 検索</title>
+    <script src="/js/tailwindcss.js"></script>
+    <link rel="stylesheet" href="/css/page.css">
+</head>
+<body class="bg-gray-900 text-white">
+    <header class="bg-gray-800 p-4 flex justify-between items-center">
+        <a href="/sonota/niko" class="text-gray-300 hover:text-white">← ニコニコ</a>
+        <h1 class="text-xl font-bold">ニコニコ動画 検索</h1>
+        <div></div>
+    </header>
+
+    <div class="container mx-auto p-6 max-w-3xl">
+        <form method="get" action="/sonota/niko/search" class="flex gap-2 mb-6">
+            <input type="text" name="q" value="<%= q || '' %>"
+                placeholder="キーワードを入力..."
+                class="flex-1 p-3 rounded bg-gray-700 text-white outline-none focus:ring-2 focus:ring-white">
+            <button type="submit" class="bg-gray-200 hover:bg-white text-gray-900 px-6 py-3 rounded font-bold transition">
+                検索
+            </button>
+        </form>
+
+        <% if (error) { %>
+        <div class="bg-red-800 text-white p-4 rounded mb-4">
+            <p>エラー: <%= error %></p>
+        </div>
+        <% } %>
+
+        <% if (videos && videos.length === 0) { %>
+        <p class="text-gray-400 text-center">検索結果がありません。</p>
+        <% } %>
+
+        <% if (videos && videos.length > 0) { %>
+        <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+            <% videos.forEach(function(v) { %>
+            <a href="/sonota/niko/umekomi?url=<%= v.contentId %>" class="block bg-gray-800 rounded-lg overflow-hidden hover:bg-gray-700 transition">
+                <% if (v.thumbnailUrl) { %>
+                <img src="<%= v.thumbnailUrl %>" alt="<%= v.title %>" class="w-full h-auto">
+                <% } %>
+                <div class="p-3">
+                    <p class="font-bold text-sm leading-snug mb-1 line-clamp-2"><%= v.title %></p>
+                    <p class="text-xs text-gray-400">再生数: <%= (v.viewCounter || 0).toLocaleString() %></p>
+                </div>
+            </a>
+            <% }); %>
+        </div>
+        <% } %>
+    </div>
+</body>
+</html>

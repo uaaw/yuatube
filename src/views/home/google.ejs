@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Google</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: arial, sans-serif;
+            background: #fff;
+            color: #202124;
+        }
+        .top-nav {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            padding: 10px 20px;
+            gap: 10px;
+        }
+        .top-nav a {
+            color: #202124;
+            font-size: 13px;
+            text-decoration: none;
+        }
+        .top-nav a:hover { text-decoration: underline; }
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding-top: 100px;
+        }
+        .logo {
+            font-size: 80px;
+            letter-spacing: -2px;
+            margin-bottom: 28px;
+            user-select: none;
+        }
+        .logo span:nth-child(1) { color: #4285F4; }
+        .logo span:nth-child(2) { color: #EA4335; }
+        .logo span:nth-child(3) { color: #FBBC05; }
+        .logo span:nth-child(4) { color: #4285F4; }
+        .logo span:nth-child(5) { color: #34A853; }
+        .logo span:nth-child(6) { color: #EA4335; }
+        .search-wrapper {
+            width: 100%;
+            max-width: 584px;
+            margin-bottom: 24px;
+        }
+        .search-input-row {
+            display: flex;
+            align-items: center;
+            border: 1px solid #dfe1e5;
+            border-radius: 24px;
+            padding: 6px 14px;
+            background: #fff;
+        }
+        .search-input-row:hover,
+        .search-input-row:focus-within {
+            box-shadow: 0 1px 6px rgba(32,33,36,.28);
+            border-color: rgba(223,225,229,0);
+        }
+        .search-icon {
+            color: #9aa0a6;
+            margin-right: 10px;
+            font-size: 18px;
+        }
+        .search-input {
+            flex: 1;
+            border: none;
+            outline: none;
+            font-size: 16px;
+            color: #202124;
+            background: transparent;
+        }
+        .buttons {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+        }
+        .search-btn {
+            padding: 10px 22px;
+            background: #f8f9fa;
+            border: 1px solid #f8f9fa;
+            border-radius: 4px;
+            color: #3c4043;
+            font-size: 14px;
+            cursor: pointer;
+            font-family: arial, sans-serif;
+        }
+        .search-btn:hover {
+            box-shadow: 0 1px 1px rgba(0,0,0,.1);
+            background: #f8f9fa;
+            border: 1px solid #dadce0;
+            color: #202124;
+        }
+        .footer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background: #f2f2f2;
+            border-top: 1px solid #e4e4e4;
+        }
+        .footer-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 20px;
+            font-size: 13px;
+            color: #70757a;
+        }
+        .footer-row a {
+            color: #70757a;
+            text-decoration: none;
+            margin: 0 8px;
+        }
+        .footer-row a:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <div class="top-nav">
+        <a href="#">Gmail</a>
+        <a href="#">画像</a>
+    </div>
+
+    <div class="container">
+        <div class="logo">
+            <span>G</span><span>o</span><span>o</span><span>g</span><span>l</span><span>e</span>
+        </div>
+
+        <form method="POST" action="/home" id="searchForm">
+        <div class="search-wrapper">
+            <div class="search-input-row">
+                <span class="search-icon">&#128269;</span>
+                <input type="text" name="q" id="searchInput" class="search-input" autocomplete="off" autofocus>
+            </div>
+        </div>
+
+        <div class="buttons">
+            <button type="submit" class="search-btn">Google 検索</button>
+            <button type="button" class="search-btn" id="luckyBtn">I'm Feeling Lucky</button>
+        </div>
+        </form>
+    </div>
+
+    <div class="footer">
+        <div class="footer-row">
+            <span>日本</span>
+            <div>
+                <a href="#">広告</a>
+                <a href="#">ビジネス</a>
+                <a href="#">検索の仕組み</a>
+            </div>
+            <div>
+                <a href="#">プライバシー</a>
+                <a href="#">規約</a>
+                <a href="#">設定</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('luckyBtn').addEventListener('click', function() {
+            const query = document.getElementById('searchInput').value.trim();
+            if (query) {
+                window.location.href = 'https://www.google.com/search?q=' + encodeURIComponent(query) + '&btnI=1';
+            }
+        });
+    </script>
+</body>
+</html>

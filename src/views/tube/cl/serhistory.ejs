@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>検索履歴</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+    <script src="https://code.jquery.com/jquery-3.5.1.js"></script>
+    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+    <script src="/js/tube.js"></script>
+    <style>
+        body { background-color: #1a202c; color: white; }
+    </style>
+</head>
+<body class="bg-gray-900 text-white">
+    <header class="bg-gray-800 p-4 flex justify-between items-center">
+            <form action="/gen/s" method="get" class="w-1/2" id="searchForm">
+              <input type="text" name="q" id="searchbox" placeholder="検索" class="searchbox w-full p-2 rounded bg-gray-700 text-white">
+            </form>
+        <nav class="space-x-4">
+            <a href="/gen" class="text-gray-300 hover:text-white">ホーム</a>
+            <a href="/gen/cl/history" class="text-gray-300 hover:text-white">履歴</a>
+        </nav>
+    </header>
+    <div class="p-8 min-h-screen flex flex-col">
+    <h2 class="text-4xl font-bold mb-8 text-center">検索履歴</h2>
+    
+    <div class="w-full max-w-7xl mx-auto space-y-6">
+        <div class="flex items-center justify-between bg-gray-700 p-4 rounded-lg shadow-md w-full">
+            <span class="text-lg">再生履歴をサジェストに表示</span>
+            <label class="flex items-center">
+                <input type="checkbox" id="historySuggest" class="mr-2 w-6 h-6">
+            </label>
+        </div>
+        
+        <div class="overflow-y-auto p-2 w-full">
+            <ul id="historyList" class="w-full grid grid-cols-1 gap-2"></ul>
+        </div>
+        
+        <button id="clearHistory" class="bg-red-500 text-white px-6 py-3 rounded-lg hover:bg-red-600 text-lg w-full">
+            履歴を全て削除
+        </button>
+    </div>
+  </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const historyList = document.getElementById("historyList");
+            const clearHistoryBtn = document.getElementById("clearHistory");
+            const historySuggest = document.getElementById("historySuggest");
+            
+            function loadHistory() {
+                historyList.innerHTML = "";
+                const searchHistory = JSON.parse(localStorage.getItem("searchHistory")) || [];
+                searchHistory.forEach((query, index) => {
+                    const div = document.createElement("div");
+                    div.className = "flex justify-between items-center bg-gray-700 p-4 rounded-lg shadow-md w-full";
+                    div.innerHTML = `
+                        <span class="truncate flex-1"><a href="/gen/s?q=${query}">${query}</a></span>
+                        <button class="text-red-400 hover:text-red-600 text-xl" data-index="${index}">×</button>
+                    `;
+                    historyList.appendChild(div);
+                });
+            }
+            
+            historyList.addEventListener("click", function (event) {
+                if (event.target.tagName === "BUTTON") {
+                    let searchHistory = JSON.parse(localStorage.getItem("searchHistory")) || [];
+                    const index = event.target.getAttribute("data-index");
+                    searchHistory.splice(index, 1);
+                    localStorage.setItem("searchHistory", JSON.stringify(searchHistory));
+                    showMessage("1件の履歴を削除したわ");
+                    loadHistory();
+                }
+            });
+            
+            clearHistoryBtn.addEventListener("click", function () {
+              if (confirm("本当に履歴を削除すんの？")) {
+                localStorage.removeItem("searchHistory");
+                showMessage("全ての履歴を削除したわ");
+                loadHistory();
+              }
+            });
+            
+            historySuggest.checked = localStorage.getItem("historySuggest") === "true";
+            historySuggest.addEventListener("change", function () {
+                localStorage.setItem("historySuggest", historySuggest.checked);
+            });
+            
+            loadHistory();
+        });
+      
+function showMessage(text) {
+    const alertMessage = document.createElement('div');
+    alertMessage.classList.add(
+        'fixed', 'top-4', 'right-4', 'bg-gradient-to-r', 
+        'from-gray-800', 'to-gray-600', 'text-white', 
+        'p-5', 'rounded-lg', 'shadow-xl', 'opacity-90', 
+        'z-50', 'transform', 'scale-90', 'transition-transform', 
+        'border-2', 'border-indigo-500'
+    );
+    alertMessage.innerHTML = `
+        <span class="font-semibold">ℹ︎</span> <span>${text}</span>
+    `;
+    document.body.appendChild(alertMessage);
+    setTimeout(() => {
+        alertMessage.style.transform = 'translateX(0) scale(1)';
+    }, 0);
+    setTimeout(() => {
+        alertMessage.style.opacity = '0';
+        alertMessage.style.transform = 'translateX(100%) scale(1.1)';
+        setTimeout(() => alertMessage.remove(), 1000);
+    }, 3500);
+}
+    </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'99c7130edbf19a52',t:'MTc2Mjc5MzY5NA=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>

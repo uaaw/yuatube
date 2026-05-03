@@ -1,0 +1,61 @@
+<html>
+<script src="/js/tailwindcss.js"></script>
+<link rel="stylesheet" href="/css/page.css">
+<body class="bg-gray-900 text-white">
+<div class="mt-2 space-y-2">
+  <% if (!videoInfo || !videoInfo.watch_next_feed) { %>
+    <p style="color:#b9bbbe;padding:8px;">関連動画を取得できませんでした</p>
+  <% } else { %>
+  <% videoInfo.watch_next_feed.forEach(video => { %>
+    <% if (video.type.endsWith("Video")) { %>
+      <div class="bg-gray-800 p-2 rounded result-item">
+        <a href="/gen/watch/<%= video.id %>">
+          <img src="/gen/back/vi/<%= video.id %>/mqdefault.jpg" alt="<%= video.title.text %> のサムネイル" class="w-full h-auto rounded">
+        </a>
+        <div class="flex items-center mt-2">
+          <% if (video.author?.thumbnails.length) { %>
+            <a href="/gen/c/<%= video.author.id %>">
+              <img src="/gen/back/yt3<%- (new URL(video.author.thumbnails[0].url)).pathname %>" alt="<%= video.author.name %> のアイコン" class="w-6 h-6 rounded-full">
+            </a>
+          <% } %>
+          <p class="text-sm text-gray-400 ml-2">
+              <a href="/gen/c/<%= video.author.id %>"><%= video.author.name %></a>
+          </p>
+        </div>
+        <p class="text-sm font-bold mt-1">
+          <%= video.title.text %>
+        </p>
+        <p class="text-xs text-gray-400">
+          <%= video.short_view_count?.text || video.view_count?.text || '不明' %>
+        </p>
+      </div>
+    <% } else if (video.type.endsWith("Playlist")) { %>
+      <% hasValidVideo = true; %>
+      <div class="bg-gray-800 p-2 rounded">
+        <a href="/gen/p/<%= video.id %>">
+          <img src="/gen/back/vi/<%= video?.endpoint?.payload?.videoId || video.first_videos?.[0]?.id || 'default' %>/mqdefault.jpg" alt="<%= video.title.text %> のサムネイル" class="w-full h-24 rounded">
+        </a>
+        <p class="text-sm font-bold mt-1">
+          <a href="/gen/p/<%= video.id %>"><%= video.title.text %></a>
+        </p>
+        <p class="text-xs text-gray-400">動画数: <%= video.video_count?.text || '不明' %></p>
+      </div>
+    <% } else if (video.type.endsWith("Channel")) { %>
+      <% hasValidVideo = true; %>
+      <div class="bg-gray-800 p-2 rounded">
+        <a href="/gen/c/<%= video.author.id %>">
+          <img src="/gen/back/yt3<%- (new URL(video.author.thumbnails[0].url)).pathname %>" alt="<%= video.author.name %> のチャンネルアイコン" class="w-16 h-16 rounded-full mx-auto">
+        </a>
+        <p class="text-sm font-bold mt-1 text-center">
+          <a href="/gen/c/<%= video.author.id %>"><%= video.author.name %></a>
+        </p>
+        <p class="text-xs text-gray-400 text-center">
+          登録者数: <%= video.subscriber_count?.text || '非公開' %>
+        </p>
+      </div>
+    <% } %>
+  <% }); %>
+  <% } %>
+</div>
+</body>
+</html>

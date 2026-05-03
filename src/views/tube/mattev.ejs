@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="/js/tailwindcss.js"></script>
+    <title>エラー</title>
+<style>
+        .controlPanel {
+            display: none;
+        }
+        .controlPanel.open { display: block; }
+        .tab-button.active {
+            background-color: #4a5568;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+　　     }
+</style>
+</head>
+<body class="bg-gray-900 text-white">
+    <header class="bg-gray-800 p-4 flex justify-between items-center fixed top-0 left-0 w-full z-10">
+        <form action="/gen/s" method="get" class="w-1/2" id="searchForm">
+            <input type="text" name="q" id="searchbox" placeholder="検索" class="searchbox w-full p-2 rounded bg-gray-700 text-white">
+        </form>
+        <nav class="space-x-4">
+            <a href="/gen" class="text-gray-300 hover:text-white">ホーム</a>
+            <a href="/gen/cl/history" class="text-gray-300 hover:text-white">履歴</a>
+        </nav>
+    </header>
+    <div class="max-w-4xl mx-auto p-6 bg-gray-800 rounded-lg shadow-lg mt-20">
+        <h1 class="text-3xl font-bold text-center mb-6">動画を取得できません</h1>
+        <p class="text-center text-lg mb-6">エラー: <%= details %></p>
+        <div class="flex w-full justify-center mb-6">
+            <img src="/gen/back/vi/<%= videoId %>/mqdefault.jpg" class="rounded-lg shadow-md max-w-full">
+        </div>
+        <p class="text-center text-lg mb-6">現在のサーバー: <strong><%= baseUrl.replace('https://', '').replace('.glitch.me', '') %></strong></p>
+        <div class="text-center">
+            <label for="serverSelect" class="text-xl">サーバーを変更:</label>
+            <select id="serverSelect" class="mt-2 p-3 bg-gray-700 text-white rounded-lg border border-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                <% serverUrls.forEach(server => { %>
+                    <option value="<%= server.replace('https://', '').replace('.glitch.me', '') %>" class="bg-gray-800 hover:bg-gray-700"><%= server.replace('https://', '').replace('.glitch.me', '') %></option>
+                <% }); %>
+                <option value="direct" class="bg-gray-800 hover:bg-gray-700">direct</option>
+            </select>
+            <button onclick="changeServer()" class="mt-4 px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-300">変更</button>
+          </div><br>
+        <p class="text-center text-lg mb-6">サーバーを変えたり、再読み込みしたりしてみてね。</p>
+    </div>
+    <script>
+function changeServer() {
+    const server = document.getElementById('serverSelect').value;
+    showMessage(`サーバーを${server}に変更します`)
+    window.location.href = `/gen/watch/<%= videoId %>?server=${server}`;
+}
+function showMessage(text) {
+    const alertMessage = document.createElement('div');
+    alertMessage.classList.add(
+        'fixed', 'top-4', 'right-4', 'bg-gradient-to-r', 
+        'from-gray-800', 'to-gray-600', 'text-white', 
+        'p-5', 'rounded-lg', 'shadow-xl', 'opacity-90', 
+        'z-50', 'transform', 'scale-90', 'transition-transform', 
+        'border-2', 'border-indigo-500'
+    );
+    alertMessage.innerHTML = `
+        <span class="font-semibold">ℹ︎</span> <span>${text}</span>
+    `;
+    document.body.appendChild(alertMessage);
+    setTimeout(() => {
+        alertMessage.style.transform = 'translateX(0) scale(1)';
+    }, 0);
+    setTimeout(() => {
+        alertMessage.style.opacity = '0';
+        alertMessage.style.transform = 'translateX(100%) scale(1.1)';
+        setTimeout(() => alertMessage.remove(), 1000);
+    }, 3500);
+}
+function showerrorMessage(text) {
+    const alertMessage = document.createElement('div');
+    alertMessage.classList.add(
+        'fixed', 'top-4', 'right-4', 'bg-gradient-to-r', 
+        'from-red-600', 'to-red-500', 'text-white', 
+        'p-5', 'rounded-lg', 'shadow-xl', 'opacity-90', 
+        'z-50', 'transform', 'scale-90', 'transition-transform', 
+        'border-2', 'border-red-500'
+    );
+    alertMessage.innerHTML = `
+        <span class="font-semibold">⚠︎</span> <span>${text}</span>
+    `;
+    document.body.appendChild(alertMessage);
+    setTimeout(() => {
+        alertMessage.style.transform = 'translateX(0) scale(1)';
+    }, 0);
+    setTimeout(() => {
+        alertMessage.style.opacity = '0';
+        alertMessage.style.transform = 'translateX(100%) scale(1.1)';
+        setTimeout(() => alertMessage.remove(), 1000);
+    }, 4000);
+}
+window.addEventListener("load", function() {
+    if (!localStorage.getItem('tutorialCompleted')) {
+      showTutorial();
+    }else{
+      showerrorMessage("動画の取得に失敗しました");
+    }
+});
+  
+function showTutorial() {
+    const tutorialOverlay = document.createElement('div');
+    tutorialOverlay.id = "tutorialOverlay";
+    tutorialOverlay.style.position = 'fixed';
+    tutorialOverlay.style.top = '0';
+    tutorialOverlay.style.left = '0';
+    tutorialOverlay.style.width = '100vw';
+    tutorialOverlay.style.height = '100vh';
+    tutorialOverlay.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
+    tutorialOverlay.style.display = 'flex';
+    tutorialOverlay.style.justifyContent = 'center';
+    tutorialOverlay.style.alignItems = 'center';
+    tutorialOverlay.style.zIndex = '1000';
+    tutorialOverlay.innerHTML = `
+        <div class="bg-gray-800 text-white p-6 rounded-lg shadow-xl w-3/4 md:w-1/2 lg:w-1/3 text-center">
+            <p class="text-lg mb-6">あなたにとって最適な再生方法を設定するために協力してください！</p>
+            <div class="space-y-4">
+            <button id="startTutorialBtn" class="w-full bg-gray-700 py-2 rounded">設定する</button>
+            <button id="skipBtn0" class="w-full bg-gray-700 py-2 rounded">設定をスキップ</button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(tutorialOverlay);
+    document.getElementById('startTutorialBtn').addEventListener('click', function() {
+        tutorialOverlay.remove();
+        showPlaybackSettings("https://www.youtube-nocookie.com/embed/<%= videoId %>", "nocookie");
+    });
+    document.getElementById('skipBtn0').addEventListener('click', function() {
+        localStorage.setItem('tutorialCompleted', 'true');
+        tutorialOverlay.remove();
+        showMessage("再生方法をnormalに設定しました。<br>再生方法の変更は「コントロール」ボタンからいつでも行えます。");
+        showerrorMessage("動画の取得に失敗しました");
+    });
+}
+
+async function showPlaybackSettings(iframeurl, mode) {
+    const settingsOverlay = document.createElement('div');
+    settingsOverlay.id = "settingsOverlay";
+    settingsOverlay.style.position = 'fixed';
+    settingsOverlay.style.top = '0';
+    settingsOverlay.style.left = '0';
+    settingsOverlay.style.width = '100vw';
+    settingsOverlay.style.height = '100vh';
+    settingsOverlay.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
+    settingsOverlay.style.display = 'flex';
+    settingsOverlay.style.justifyContent = 'center';
+    settingsOverlay.style.alignItems = 'center';
+    settingsOverlay.style.zIndex = '1001';
+    settingsOverlay.innerHTML = `
+        <div class="bg-gray-800 text-white p-6 rounded-lg shadow-xl w-3/4 md:w-1/2 lg:w-1/3 text-center">
+            <p class="text-lg mb-6">下に動画は表示されていますか？</p>
+            <iframe id="videoIframe" class="w-full h-64 mb-4" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+            <div class="space-y-4">
+                <button id="canPlayBtn" class="w-full bg-gray-700 py-2 rounded">再生できる</button>
+                <button id="cannotPlayBtn" class="w-full bg-gray-700 py-2 rounded">再生できない</button>
+                <button id="skipBtn" class="w-full bg-gray-700 py-2 rounded">設定をスキップ</button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(settingsOverlay);
+    const iframe = document.getElementById('videoIframe');
+    iframe.src = iframeurl;
+
+    document.getElementById('canPlayBtn').addEventListener('click', function() {
+        localStorage.setItem('tutorialCompleted', 'true');
+        document.cookie = `playbackMode=${mode}; path=/; max-age=31536000`;
+        if(mode == "nocookie"){
+          showMessage("再生方法をnocookieに設定しました。");
+          window.location.href = `/gen/yt/nocookie/<%= videoId %>?tu=true`;
+        } else{
+          showMessage("再生方法をeduに設定しました。");
+          window.location.href = `/gen/yt/edu/<%= videoId %>?tu=true`;
+        }
+    });
+    document.getElementById('cannotPlayBtn').addEventListener('click',async function() {
+        if (mode == "nocookie"){
+          settingsOverlay.remove();
+          showMessage("必要なデータを取得中です");
+          const ytinfo3 = await fetch('/gen/yt/edurl', { method: 'GET' });
+          const ytinfo = await ytinfo3.text();
+          showPlaybackSettings(`https://www.youtubeeducation.com/embed/<%= videoId %>${ytinfo}`, "edu");
+        } else {
+          localStorage.setItem('tutorialCompleted', 'true');
+          settingsOverlay.remove();
+          showMessage("再生方法をnormalに設定しました。<br>再生方法の変更は「コントロール」ボタンからいつでも行えます。");
+          showerrorMessage("動画の取得に失敗しました");
+        }
+    });
+    document.getElementById('skipBtn').addEventListener('click', function() {
+        localStorage.setItem('tutorialCompleted', 'true');
+        settingsOverlay.remove();
+        showMessage("再生方法をnormalに設定しました。<br>再生方法の変更は「コントロール」ボタンからいつでも行えます。");
+        showerrorMessage("動画の取得に失敗しました");
+    });
+}
+    </script>
+</body>
+</html>

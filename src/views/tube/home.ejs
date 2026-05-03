@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>天才ぷろぐらまーの規制突破</title>
+    <link rel="stylesheet" href="/css/page.css">
+    <script src="/js/tailwindcss.js"></script>
+    <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+    <script src="https://code.jquery.com/jquery-3.5.1.js"></script>
+    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+    <script src="/js/tube.js"></script>
+    <style>
+        .site-header {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: rgba(10,10,10,0.96);
+            border-bottom: 1px solid rgba(88,101,242,0.25);
+            backdrop-filter: blur(12px);
+            padding: 14px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .site-header .logo img {
+            height: 32px;
+            width: auto;
+            border-radius: 6px;
+        }
+        .site-header nav { display: flex; gap: 20px; align-items: center; }
+        .site-header nav a {
+            color: #b9bbbe;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: color 0.2s;
+        }
+        .site-header nav a:hover { color: #fff; }
+        .site-header nav button#openSettings {
+            background: none;
+            box-shadow: none;
+            color: #b9bbbe;
+            padding: 0;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: color 0.2s;
+        }
+        .site-header nav button#openSettings:hover {
+            color: #fff;
+            transform: none;
+            box-shadow: none;
+        }
+        .hero-section {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 46vh;
+            background: linear-gradient(135deg, #0d0d1a 0%, #0a0a0a 60%, #0d0d1a 100%);
+            border-bottom: 1px solid rgba(88,101,242,0.2);
+            text-align: center;
+            padding: 40px 20px;
+        }
+        .hero-title {
+            font-size: 2.2rem;
+            font-weight: 700;
+            color: #fff;
+            text-shadow: 0 0 24px rgba(88,101,242,0.5);
+            margin-bottom: 10px;
+        }
+        .hero-sub { color: #b9bbbe; font-size: 1rem; margin-bottom: 28px; }
+        .app-cards-section {
+            padding: 40px 20px;
+            background: rgba(10,10,10,0.98);
+            border-bottom: 1px solid rgba(88,101,242,0.15);
+        }
+        .app-card-container {
+            display: flex;
+            justify-content: center;
+            gap: 16px;
+            flex-wrap: wrap;
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        .app-card {
+            background: rgba(20,20,20,0.95);
+            border: 2px solid rgba(88,101,242,0.25);
+            border-radius: 16px;
+            padding: 18px;
+            width: 170px;
+            text-align: center;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            text-decoration: none;
+        }
+        .app-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 8px 30px rgba(88,101,242,0.35);
+            border-color: rgba(88,101,242,0.5);
+        }
+        .app-card img {
+            width: 100%;
+            height: auto;
+            border-radius: 10px;
+            margin-bottom: 10px;
+        }
+        .app-card h3 { color: #fff; font-size: 1rem; font-weight: 700; margin-bottom: 4px; }
+        .app-card p { color: #b9bbbe; font-size: 0.8rem; }
+        .settings-panel {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            background: rgba(10,10,10,0.98);
+            border-bottom: 1px solid rgba(88,101,242,0.25);
+            backdrop-filter: blur(12px);
+            padding: 24px;
+            transform: translateY(-110%);
+            transition: transform 0.3s ease;
+            z-index: 200;
+        }
+        .settings-panel.open { transform: translateY(0); }
+        .settings-inner {
+            max-width: 640px;
+            margin: 0 auto;
+            position: relative;
+        }
+        .settings-inner h1 { font-size: 1.4rem; font-weight: 700; color: #fff; margin-bottom: 12px; }
+        .settings-inner p { color: #b9bbbe; font-size: 0.9rem; margin-bottom: 16px; }
+        .settings-option {
+            background: rgba(20,20,20,0.9);
+            border: 1px solid rgba(88,101,242,0.2);
+            border-radius: 10px;
+            padding: 16px;
+            margin-bottom: 12px;
+            cursor: pointer;
+        }
+        .settings-option label { display: flex; align-items: flex-start; gap: 10px; cursor: pointer; }
+        .settings-option input[type="radio"] { margin-top: 3px; accent-color: #5865F2; }
+        .settings-option strong { color: #fff; }
+        .settings-option p { color: #72767d; font-size: 0.8rem; margin-top: 4px; margin-bottom: 0; }
+        .settings-save-btn {
+            display: inline-block;
+            padding: 10px 28px;
+            background: linear-gradient(135deg, #5865F2 0%, #7289DA 100%);
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(88,101,242,0.3);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .settings-save-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 25px rgba(88,101,242,0.45); }
+        .settings-close-btn {
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 36px;
+            height: 36px;
+            background: rgba(88,101,242,0.15);
+            border: 1px solid rgba(88,101,242,0.3);
+            border-radius: 50%;
+            color: #fff;
+            font-size: 1.4rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .settings-close-btn:hover { background: rgba(88,101,242,0.3); }
+        .site-footer {
+            background: rgba(10,10,10,0.98);
+            border-top: 1px solid rgba(88,101,242,0.2);
+            color: #72767d;
+            padding: 20px;
+            text-align: center;
+            font-size: 1.1rem;
+        }
+    </style>
+</head>
+<body>
+
+    <header class="site-header">
+        <div class="logo">
+            <img src="/img/logo.jpg" alt="logo">
+        </div>
+        <nav>
+            <button id="openSettings">設定</button>
+            <a href="/gen/cl/history">履歴</a>
+            <a href="/gen/cl/fav">お気に入り</a>
+        </nav>
+    </header>
+
+    <section class="hero-section">
+        <div>
+            <h1 class="hero-title">天才ぷろぐらまーの規制突破</h1>
+            <p class="hero-sub">好きな動画を検索してみよ。</p>
+            <form action="/gen/s" method="get" id="searchForm" style="width:100%; max-width:640px; margin:0 auto;">
+                <input type="text" name="q" id="searchbox" placeholder="キーワード、もしくはYouTubeのURLを入力..." class="searchbox">
+            </form>
+        </div>
+    </section>
+
+    <section class="app-cards-section">
+        <div class="app-card-container">
+            <a href="/sonota" class="app-card">
+                <img src="/img/sonota.jpg" alt="その他">
+                <h3>その他</h3>
+                <p>各種サービス。</p>
+            </a>
+            <a href="/game" class="app-card">
+                <img src="/img/game.jpg" alt="APP">
+                <h3>APP</h3>
+                <p>Webゲームをプレイ。</p>
+            </a>
+            <a href="/tensais" class="app-card">
+                <img src="/img/music.jpg" alt="Music">
+                <h3>Music</h3>
+                <p>音楽を聴くためのアプリ</p>
+            </a>
+            <a href="/tools" class="app-card">
+                <img src="/img/tool.jpg" alt="ツール">
+                <h3>ツール</h3>
+                <p>お前を助けるかもしれない</p>
+            </a>
+            <a href="https://github.com/uaaw" class="app-card">
+                <img src="/img/contact.jpg" alt="連絡用">
+                <h3>連絡用</h3>
+                <p>開発者に連絡する</p>
+            </a>
+        </div>
+    </section>
+
+    <div id="settingsPanel" class="settings-panel">
+        <div class="settings-inner">
+            <button class="settings-close-btn" id="closeSettings">×</button>
+            <h1>再生方法の設定</h1>
+            <p>再生方法を選択してください。</p>
+
+            <form id="settingsForm">
+                <div class="settings-option">
+                    <label>
+                        <input type="radio" name="playbackMode" value="normal">
+                        <div>
+                            <strong>通常</strong>
+                            <p>通常の再生方法で、ストリームを取得して再生を行います。</p>
+                        </div>
+                    </label>
+                </div>
+                <div class="settings-option">
+                    <label>
+                        <input type="radio" name="playbackMode" value="nocookie">
+                        <div>
+                            <strong>NoCookie</strong>
+                            <p>youtubenocookieを埋め込んで再生を行います。</p>
+                        </div>
+                    </label>
+                </div>
+                <div class="settings-option">
+                    <label>
+                        <input type="radio" name="playbackMode" value="invidious">
+                        <div>
+                            <strong>Invidious</strong>
+                            <p>Invidiousサーバーを経由して再生を行います。</p>
+                        </div>
+                    </label>
+                </div>
+                <button type="button" id="saveButton" class="settings-save-btn">保存</button>
+            </form>
+        </div>
+    </div>
+
+    <footer class="site-footer">┬─┬ノ( º _ ºノ)</footer>
+
+<script>
+document.getElementById("searchForm").addEventListener("submit", function(event) {
+    event.preventDefault();
+    const query = document.getElementById("searchbox").value.trim();
+    const ytRegex = /(?:https?:\/\/)?(?:www\.)?youtu(?:\.be\/|be\.com\/(?:watch\?v=|embed\/|v\/|shorts\/))([\w\-]+)/;
+    const match = query.match(ytRegex);
+    if (match) {
+        window.location.href = `/gen/w/${match[1]}`;
+    } else {
+        this.submit();
+    }
+});
+
+window.addEventListener("load", function() {
+    const hometut = localStorage.getItem('homec');
+    if (!hometut) {
+        showMessage("ようこそ！左下の設定から再生方法を変更できます。");
+        localStorage.setItem('homec', 'true');
+    } else if (hometut === "true") {
+        showMessage("動画URLを貼り付けると直接視聴できます！");
+        localStorage.setItem('homec', 'ok');
+    }
+});
+
+function showMessage(text) {
+    const el = document.createElement('div');
+    el.style.cssText = 'position:fixed;top:16px;right:16px;background:rgba(20,20,20,0.96);border:1px solid rgba(88,101,242,0.4);color:#fff;padding:16px 20px;border-radius:10px;box-shadow:0 8px 30px rgba(0,0,0,0.5);z-index:9999;max-width:340px;font-size:0.9rem;transition:transform 0.3s,opacity 0.3s;cursor:pointer;';
+    el.innerHTML = `<div style="display:flex;align-items:flex-start;gap:12px;"><span>ℹ︎ ${text}</span><button style="background:none;box-shadow:none;color:#b9bbbe;font-size:1.2rem;padding:0;min-width:20px;line-height:1;">&times;</button></div>`;
+    document.body.appendChild(el);
+    const close = () => { el.style.opacity='0'; el.style.transform='translateX(120%)'; setTimeout(()=>el.remove(),300); };
+    const timer = setTimeout(close, 3500);
+    el.querySelector('button').addEventListener('click', ()=>{ clearTimeout(timer); close(); });
+}
+
+document.getElementById('openSettings').addEventListener('click', () => {
+    document.getElementById('settingsPanel').classList.add('open');
+});
+document.getElementById('closeSettings').addEventListener('click', () => {
+    document.getElementById('settingsPanel').classList.remove('open');
+});
+document.getElementById('saveButton').addEventListener('click', () => {
+    const mode = document.querySelector('input[name=playbackMode]:checked')?.value;
+    if (!mode) return;
+    document.cookie = `playbackMode=${mode}; path=/; max-age=31536000`;
+    document.getElementById('settingsPanel').classList.remove('open');
+    showMessage(`再生方法を${mode}に変更したわ`);
+});
+
+window.addEventListener('DOMContentLoaded', () => {
+    const cookies = document.cookie.split('; ').reduce((acc, c) => {
+        const [k, v] = c.split('=');
+        acc[k] = v;
+        return acc;
+    }, {});
+    const mode = cookies.playbackMode || 'normal';
+    const radio = document.querySelector(`input[value="${mode}"]`);
+    if (radio) radio.checked = true;
+});
+</script>
+</body>
+</html>

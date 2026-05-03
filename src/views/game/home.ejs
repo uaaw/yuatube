@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>G</title>
+    <script src="/js/tailwindcss.js"></script>
+    <link rel="stylesheet" href="/css/page.css">
+    <style>
+        .hero-section {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 50vh;
+            background-color: #2d3748;
+        }
+        .searchbox {
+            position: absolute;
+            transform: translate(-50%, 0%);
+            width: 80%;
+            max-width: 700px;
+            padding: 0.75rem;
+            font-size: 1.2rem;
+            border-radius: 25px;
+            border: none;
+            background-color: rgba(255, 255, 255, 0.1);
+            color: white;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+        .searchbox:focus {
+            background-color: rgba(255, 255, 255, 0.3);
+            box-shadow: 0 0 8px rgba(255, 255, 255, 0.5);
+        }
+        .app-card-container {
+            display: flex;
+            justify-content: center;
+            gap: 16px;
+            margin-top: 30px;
+            flex-wrap: wrap;
+        }
+        .app-card {
+            background-color: #1a202c;
+            border-radius: 25px;
+            padding: 15px;
+            width: 180px;
+            text-align: center;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            border: 2px solid #4a5568;
+        }
+        .app-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 4px 10px rgba(255, 255, 255, 0.1);
+        }
+        .app-card img {
+            width: 100%;
+            height: auto;
+            border-radius: 10px;
+            margin-bottom: 10px;
+        }
+        .app-card h3 {
+            color: white;
+            font-size: 1.1rem;
+            margin-bottom: 8px;
+        }
+        .app-card p {
+            color: #cbd5e0;
+            font-size: 0.875rem;
+        }
+        footer {
+            background-color: #2d3748;
+            color: #cbd5e0;
+            padding: 1rem;
+            text-align: center;
+            margin-top: 50px;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 font-sans">
+    <button class="back-button fixed top-5 left-5 z-50 bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg shadow-lg transform transition-all duration-300 ease-in-out flex items-center space-x-2" onclick="window.location.href='/gen'">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+        </svg>
+        <span>戻る</span>
+    </button>
+
+    <div class="section bg-white dark:bg-gray-800 text-center py-20">
+      
+        <div class="mt-6">
+          <input type="text" id="search" placeholder="げーむを検索..." class="w-full max-w-md p-2 border rounded-lg shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-black">
+        </div>
+  
+        <section class="py-10 px-4 bg-gray-800">
+
+        <div class="app-card-container" id="app-list">
+            <div class="app-card">
+                <a href="/game/games/snow">
+                <img src="/img/snow.jpg">
+                </a>
+                <h3 class="app-title">Snowball.io</h3>
+                <p class="app-description">雪玉をぶつけ合うバトロワゲーム</p>
+            </div>
+            <div class="app-card">
+                <a href="/game/games/paper">
+                <img src="/img/paper.jpg">
+                </a>
+                <h3 class="app-title">Paper.io</h3>
+                <p class="app-description">自分の陣地を広げるゲーム</p>
+            </div>
+            <div class="app-card">
+                <a href="/game/games/drive">
+                <img src="/img/drive.jpg">
+                </a>
+                <h3 class="app-title">ドライブゲーム</h3>
+                <p class="app-description"><del>今にもぶっ壊れそうな</del>車の冒険</p>
+            </div>
+            <div class="app-card">
+                <a href="/game/games/aiothello">
+                <img src="/img/othello.jpg">
+                </a>
+                <h3 class="app-title">ひとりオセロ</h3>
+                <p class="app-description">ばーさすつよつよAI</p>
+            </div>
+            <div class="app-card">
+                <a href="/game/games/snowrider">
+                <img src="/img/snowrider.jpg">
+                </a>
+                <h3 class="app-title">snowrider</h3>
+                <p class="app-description">スキーするゲーム？</p>
+            </div>
+            <div class="app-card">
+                <a href="/game/games/chess">
+                <img src="/img/chess.jpg">
+                </a>
+                <h3 class="app-title">チェス</h3>
+                <p class="app-description">AI対戦チェス</p>
+            </div>
+        </div>
+    </section>
+  </div>
+
+    <footer>
+        <p>うー！</p>
+    </footer>
+  
+    <script>
+        const searchInput = document.getElementById('search');
+        const toolList = document.getElementById('app-list');
+        const tools = document.querySelectorAll('.app-card');
+
+        searchInput.addEventListener('input', function() {
+            const searchText = searchInput.value.toLowerCase();
+
+            tools.forEach(tool => {
+                const title = tool.querySelector('.app-title').textContent.toLowerCase();
+                const description = tool.querySelector('.app-description').textContent.toLowerCase();
+                if (title.includes(searchText) || description.includes(searchText)) {
+                    tool.style.display = '';
+                } else {
+                    tool.style.display = 'none';
+                }
+            });
+        });
+    </script>
+
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'99c738ddaf00d3f7',t:'MTc2Mjc5NTI0Mw=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>

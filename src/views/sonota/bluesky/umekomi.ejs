@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bluesky</title>
+    <script src="/js/tailwindcss.js"></script>
+    <link rel="stylesheet" href="/css/page.css">
+</head>
+<body class="bg-gray-900 text-white">
+    <header class="bg-gray-800 p-4 flex justify-between items-center">
+        <a href="/sonota/bluesky" class="text-gray-300 hover:text-white">← Bluesky</a>
+        <h1 class="text-xl font-bold">Bluesky</h1>
+        <div></div>
+    </header>
+
+    <div class="container mx-auto p-6 max-w-2xl">
+        <form method="get" action="/sonota/bluesky/umekomi" class="flex gap-2 mb-6">
+            <input type="text" name="url" value="<%= url || '' %>"
+                placeholder="投稿URL (https://bsky.app/profile/.../post/...)..."
+                class="flex-1 p-3 rounded bg-gray-700 text-white outline-none"
+                style="focus:ring-2;focus:ring-blue-400;">
+            <button type="submit" class="bg-blue-600 hover:bg-blue-500 px-6 py-3 rounded font-bold transition">
+                表示
+            </button>
+        </form>
+
+        <% if (error) { %>
+        <div class="bg-red-800 text-white p-4 rounded mb-4">
+            <p>エラー: <%= error %></p>
+        </div>
+        <% } %>
+
+        <% if (post) { %>
+        <div style="background:rgba(15,20,30,0.95);border:1px solid rgba(100,149,237,0.35);border-radius:12px;padding:20px;">
+            <%# ユーザー情報 %>
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
+                <% if (post.author.avatar) { %>
+                <img src="<%= post.author.avatar %>" alt="avatar" style="width:44px;height:44px;border-radius:50%;flex-shrink:0;">
+                <% } %>
+                <div>
+                    <p style="font-weight:700;color:#fff;"><%= post.author.displayName || post.author.handle %></p>
+                    <p style="font-size:0.85rem;color:#7289da;">@<%= post.author.handle %></p>
+                </div>
+                <a href="https://bsky.app/profile/<%= post.author.handle %>/post/<%= post.uri.split('/').pop() %>"
+                   target="_blank" rel="noopener"
+                   style="margin-left:auto;color:#7289da;font-size:0.85rem;white-space:nowrap;">Bskyで見る</a>
+            </div>
+
+            <%# 本文 %>
+            <p style="color:#dcddde;line-height:1.7;white-space:pre-wrap;word-break:break-word;"><%= post.record.text %></p>
+
+            <%# 画像 %>
+            <% if (post.embed && post.embed['$type'] === 'app.bsky.embed.images#view') { %>
+            <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px;margin-top:12px;">
+                <% post.embed.images.forEach(function(img) { %>
+                <a href="<%= img.fullsize %>" target="_blank" rel="noopener">
+                    <img src="<%= img.thumb %>" alt="<%= img.alt || '' %>" style="width:100%;border-radius:8px;object-fit:cover;">
+                </a>
+                <% }); %>
+            </div>
+            <% } %>
+
+            <%# 動画 %>
+            <% if (post.embed && post.embed['$type'] === 'app.bsky.embed.video#view') { %>
+            <div style="margin-top:12px;">
+                <video id="bskyVideo" controls playsinline style="width:100%;border-radius:8px;background:#000;"
+                       poster="<%= post.embed.thumbnail || '' %>">
+                </video>
+                <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.15/dist/hls.min.js"></script>
+                <script>
+                (function() {
+                    const video = document.getElementById('bskyVideo');
+                    const src = '<%- post.embed.playlist.replace(/'/g, "\\'") %>';
+                    if (typeof Hls !== 'undefined' && Hls.isSupported()) {
+                        const hls = new Hls();
+                        hls.loadSource(src);
+                        hls.attachMedia(video);
+                    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+                        video.src = src;
+                    }
+                })();
+                </script>
+            </div>
+            <% } %>
+
+            <%# スタッツ %>
+            <div style="display:flex;gap:20px;margin-top:14px;font-size:0.85rem;color:#72767d;">
+                <span>返信 <%= post.replyCount || 0 %></span>
+                <span>RT <%= post.repostCount || 0 %></span>
+                <span>いいね <%= post.likeCount || 0 %></span>
+            </div>
+            <p style="font-size:0.75rem;color:#72767d;margin-top:8px;">
+                <%= new Date(post.record.createdAt).toLocaleString('ja-JP') %>
+            </p>
+        </div>
+        <% } %>
+    </div>
+</body>
+</html>

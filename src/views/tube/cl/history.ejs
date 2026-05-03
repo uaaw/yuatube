@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>りれき - 天才ぷろぐらまーによる</title>
+    <link rel="stylesheet" href="/css/page.css">
+    <script src="/js/tailwindcss.js"></script>
+    <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+    <script src="https://code.jquery.com/jquery-3.5.1.js"></script>
+    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+    <script src="/js/tube.js"></script>
+    <style>
+        .result-item {
+            position: relative;
+        }
+        .thumbnail {
+            position: relative;
+            display: inline-block;
+        }
+        .video-duration {
+            position: absolute;
+            bottom: 8px;
+            right: 8px;
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 2px 4px;
+            border-radius: 2px;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-white">
+    <header class="bg-gray-800 p-4 flex justify-between items-center">
+            <form action="/gen/s" method="get" class="w-1/2" id="searchForm">
+              <input type="text" name="q" id="searchbox" placeholder="検索" class="searchbox w-full p-2 rounded bg-gray-700 text-white">
+            </form>
+        <nav class="space-x-4">
+            <a href="/gen" class="text-gray-300 hover:text-white">ホーム</a>
+            <a href="/gen/cl/shistory" class="text-gray-300 hover:text-white">検索履歴</a>
+        </nav>
+    </header>
+    <div class="container mx-auto p-4 mt-4 relative">
+        <h2 class="text-xl font-bold mb-4">再生履歴</h2>
+        <button id="clear-history" class="absolute top-0 right-0 m-4 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700">
+            履歴を削除
+        </button>
+        <div id="history-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            <p id="no-history" class="hidden">最近再生した動画はねぇよ</p>
+        </div>
+    </div>
+<script>
+function getHistoryFromLocalStorage() {
+    const historyData = localStorage.getItem("tensaitubehistory");
+    try {
+        return historyData ? JSON.parse(historyData) : [];
+    } catch (error) {
+        console.error('Error parsing history from localStorage:', error);
+        return [];
+    }
+}
+
+function displayHistory() {
+    const history = getHistoryFromLocalStorage().reverse();
+    const historyList = document.getElementById("history-list");
+    const noHistoryMsg = document.getElementById("no-history");
+    historyList.innerHTML = "";
+    if (!history || history.length === 0) {
+        noHistoryMsg.classList.remove("hidden");
+        return;
+    } else {
+        noHistoryMsg.classList.add("hidden");
+    }
+    history.forEach((video, index) => {
+        const item = document.createElement("div");
+        item.className = "result-item  w-auto bg-gray-800 p-4 rounded relative";
+        item.innerHTML = `
+            <a href="/gen/watch/${video.videoId}" class="thumbnail">
+                <img loading="lazy" src="/gen/back/vi/${video.videoId}/mqdefault.jpg" alt="${video.videoTitle}" class="w-full h-auto rounded">
+            </a>
+            <div class="mt-2 flex items-center justify-between">
+                <a href="/gen/c/${video.channelId}" class="flex items-center">
+                    <p class="text-sm text-gray-400">${video.channelName}</p>
+                </a>
+            </div>
+            <p class="text-lg font-bold">${video.videoTitle}</p>
+        `;
+        historyList.appendChild(item);
+    });
+}
+
+function clearHistory() {
+  if (confirm("本当に履歴を削除すんの？")) {
+    localStorage.removeItem("tensaitubehistory");
+    showerrorMessage("履歴を削除したわ");
+    displayHistory();
+  }
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+    displayHistory();
+    document.getElementById("clear-history").addEventListener("click", clearHistory);
+});
+  
+function showMessage(text) {
+    const alertMessage = document.createElement('div');
+    alertMessage.classList.add(
+        'fixed', 'top-4', 'right-4', 'bg-gradient-to-r', 
+        'from-gray-800', 'to-gray-600', 'text-white', 
+        'p-5', 'rounded-lg', 'shadow-xl', 'opacity-90', 
+        'z-50', 'transform', 'scale-90', 'transition-transform', 
+        'border-2', 'border-indigo-500'
+    );
+    alertMessage.innerHTML = `
+        <span class="font-semibold">ℹ︎</span> <span>${text}</span>
+    `;
+    document.body.appendChild(alertMessage);
+    setTimeout(() => {
+        alertMessage.style.transform = 'translateX(0) scale(1)';
+    }, 0);
+    setTimeout(() => {
+        alertMessage.style.opacity = '0';
+        alertMessage.style.transform = 'translateX(100%) scale(1.1)';
+        setTimeout(() => alertMessage.remove(), 1000);
+    }, 3500);
+}
+function showerrorMessage(text) {
+    const alertMessage = document.createElement('div');
+    alertMessage.classList.add(
+        'fixed', 'top-4', 'right-4', 'bg-gradient-to-r', 
+        'from-red-600', 'to-red-500', 'text-white', 
+        'p-5', 'rounded-lg', 'shadow-xl', 'opacity-90', 
+        'z-50', 'transform', 'scale-90', 'transition-transform', 
+        'border-2', 'border-red-500'
+    );
+    alertMessage.innerHTML = `
+        <span class="font-semibold">⚠︎</span> <span>${text}</span>
+    `;
+    document.body.appendChild(alertMessage);
+    setTimeout(() => {
+        alertMessage.style.transform = 'translateX(0) scale(1)';
+    }, 0);
+    setTimeout(() => {
+        alertMessage.style.opacity = '0';
+        alertMessage.style.transform = 'translateX(100%) scale(1.1)';
+        setTimeout(() => alertMessage.remove(), 1000);
+    }, 4000);
+}
+</script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'99c71174ec28d1bd',t:'MTc2Mjc5MzYyOA=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>

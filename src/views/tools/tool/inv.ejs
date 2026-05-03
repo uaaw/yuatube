@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>APIチェッカー</title>
+    <script src="/js/tailwindcss.js"></script>
+    <link rel="stylesheet" href="/css/page.css">
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-white">
+    <button class="back-button fixed top-5 left-5 z-50 bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg shadow-lg transform transition-all duration-300 ease-in-out flex items-center space-x-2" onclick="window.location.href='/tools'">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+        </svg>
+        <span>戻る</span>
+    </button>
+  
+    <div class="w-full h-screen p-6">
+        <h1 class="text-3xl font-bold text-center py-4">APIチェック</h1>
+        <p class="text-gray-900 dark:text-gray-300 mt-2 leading-relaxed">invidiousのURLを改行して入力してみよ。</p><br><br>
+        <div class="w-full max-w-4xl mx-auto">
+            <form id="apiForm" class="space-y-4">
+                <label for="urls" class="block text-gray-700 dark:text-gray-300 text-lg">試すAPIのURL（改行区切り）:</label>
+                <textarea name="urls" id="urls" rows="10" class="w-full p-4 border rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"></textarea>
+                <button id="submitButton" type="submit" class="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 px-6 rounded-lg shadow-md transition text-lg">チェック開始</button>
+            </form>
+            <p id="loadingMessage" class="text-blue-500 mt-4 hidden text-center text-lg">APIをチェック中…<br>URLが多いほど、チェックに時間がかかります。<br>チェック中にこのページを閉じたり、ネットを切断したりしないで下さい。</p>
+            <p id="errorMessage" class="text-red-500 mt-4 hidden text-center text-lg"></p>
+            <div id="resultContainer" class="mt-6 hidden">
+                <h2 class="text-2xl font-semibold text-center mb-4">結果</h2>
+                <pre id="result" class="bg-gray-200 dark:bg-gray-800 p-4 rounded-lg shadow-md whitespace-pre-wrap"></pre>
+            </div>
+        </div>
+    </div>
+
+<script>
+    document.getElementById("apiForm").addEventListener("submit", async function (event) {
+        event.preventDefault();
+
+        const errorMessage = document.getElementById("errorMessage");
+        const loadingMessage = document.getElementById("loadingMessage");
+        const submitButton = document.getElementById("submitButton");
+        const resultContainer = document.getElementById("resultContainer");
+        const result = document.getElementById("result");
+
+        errorMessage.classList.add("hidden");
+        loadingMessage.classList.remove("hidden");
+        submitButton.disabled = true;
+        submitButton.classList.add("opacity-50", "cursor-not-allowed");
+        resultContainer.classList.add("hidden");
+
+        try {
+            const urls = document
+                .getElementById("urls")
+                .value.split("\n")
+                .map(url => url.trim())
+                .filter(url => url);
+
+            const response = await fetch("/tools/inv/check", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ urls }),
+            });
+
+            if (!response.ok) {
+                throw new Error(await response.text());
+            }
+
+            const { successUrls, errorUrls } = await response.json();
+
+            let html = "<h2 class='text-xl font-semibold'>APIチェック結果</h2>";
+
+            if (successUrls.length) {
+                html += "<h3 class='text-green-500'>正常に取得できたURL</h3><ul class='list-disc pl-5'>";
+                successUrls.forEach(({ api, streamUrl }) => {
+                    html += `<li>${api} 　- 　<a href='${streamUrl}' target='_blank' class='text-blue-500 underline'>再生できるか確かめる</a></li><br>`;
+                });
+                html += "</ul>";
+            }
+
+            if (errorUrls.length) {
+                html += "<h3 class='text-red-500'>エラーが出たURL</h3><ul class='list-disc pl-5'>";
+                errorUrls.forEach(api => {
+                    html += `<li>${api}</li>`;
+                });
+                html += "</ul>";
+            }
+
+            result.innerHTML = html;
+            resultContainer.classList.remove("hidden");
+        } catch (error) {
+            errorMessage.textContent = error.message;
+            errorMessage.classList.remove("hidden");
+        } finally {
+            loadingMessage.classList.add("hidden");
+            submitButton.disabled = false;
+            submitButton.classList.remove("opacity-50", "cursor-not-allowed");
+        }
+    });
+</script>
+
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'99c70dc4cf5319cd',t:'MTc2Mjc5MzQ3Nw=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>

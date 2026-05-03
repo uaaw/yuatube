@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= query %> - 検索</title>
+    <link rel="stylesheet" href="/css/page.css">
+    <script src="/js/tailwindcss.js"></script>
+    <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+    <script src="https://code.jquery.com/jquery-3.5.1.js"></script>
+    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+    <script src="/js/tube.js"></script>
+<style>
+.result-item { position: relative; }
+.result-item.bg-gray-800 {
+    background: rgba(20,20,20,0.95) !important;
+    border: 1px solid rgba(88,101,242,0.18) !important;
+    border-radius: 10px;
+}
+.result-item.bg-gray-600 {
+    background: rgba(25,25,25,0.95) !important;
+    border: 1px solid rgba(88,101,242,0.18) !important;
+    border-radius: 10px;
+}
+.load-more-btn {
+    display: inline-block;
+    padding: 12px 32px;
+    background: linear-gradient(135deg, #5865F2 0%, #7289DA 100%);
+    color: #fff;
+    font-size: 1rem;
+    font-weight: 700;
+    border-radius: 25px;
+    text-decoration: none;
+    box-shadow: 0 4px 18px rgba(88,101,242,0.35);
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+.load-more-btn:hover { transform: translateY(-3px); box-shadow: 0 8px 28px rgba(88,101,242,0.5); color:#fff; }
+</style>
+</head>
+<body class="bg-gray-900 text-white">
+    <header style="background:rgba(10,10,10,0.96);border-bottom:1px solid rgba(88,101,242,0.25);backdrop-filter:blur(12px);padding:12px 20px;display:flex;justify-content:space-between;align-items:center;position:fixed;top:0;left:0;width:100%;z-index:100;">
+        <form action="/gen/s" method="get" class="w-1/2 relative" id="searchForm">
+            <input type="text" name="q" id="searchbox" placeholder="検索" value="<%= query %>" class="searchbox w-full" style="padding-right:36px;">
+            <button type="button" id="clearBtn" class="absolute right-2 top-1/2 -translate-y-1/2 flex items-center justify-center h-6 w-6 rounded-full text-white text-lg leading-none hidden" style="background:rgba(88,101,242,0.3);box-shadow:none;padding:0;">
+             ×
+            </button>
+        </form>
+        <nav style="display:flex;gap:18px;align-items:center;margin-left:16px;">
+            <a href="/gen" style="color:#b9bbbe;text-decoration:none;font-weight:600;font-size:0.9rem;">ホーム</a>
+            <a href="/gen/cl/history" style="color:#b9bbbe;text-decoration:none;font-weight:600;font-size:0.9rem;">履歴</a>
+        </nav>
+    </header>
+    
+    <div class="container mx-auto p-4" style="margin-top:68px;">
+        <h2 class="text-xl font-bold mb-4" style="color:#fff;">検索結果: <%= query %></h2>
+  
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            <% res.results.forEach(video => { %>
+              <% if (video.type.endsWith("Video")) { %>
+                <div class="result-item w-auto h-auto bg-gray-800 p-4 rounded">
+                    <a href="/gen/watch/<%= video.id %>" class="thumbnail">
+                        <img loading="lazy" src="/gen/back/vi/<%= video.id %>/mqdefault.jpg" alt="<%= video.title.text %>" class="w-full h-auto rounded">
+                        <span class="video-duration"><%= video.duration.text %></span>
+                    </a>
+                    <div class="mt-2 flex items-center">
+                        <a href="/gen/c/<%= video.author.id %>" class="flex items-center">
+                            <img src="/gen/back/yt3<%- (new URL(video.author.thumbnails[0].url)).pathname %>" alt="アイコン" class="w-8 h-8 rounded-full mr-2">
+                            <p class="text-sm text-gray-400"><%= video.author.name %></p>
+                        </a>
+                    </div>
+                    <p class="text-lg font-bold"><%= video.title.text %></p>
+                    <p class="text-xs text-gray-500"><%= video.view_count?.text || video.short_view_count?.text %> - <%= video.published?.text || "" %></p>
+                </div>
+              <% } else if (video.type.endsWith("Playlist")) { %>
+                <div class="result-item bg-gray-600 p-4 rounded">
+                  <a href="/gen/p/<%= video.id %>">
+                    <img src="/vi/<%= video?.endpoint?.payload?.videoId || video.first_videos[0]?.id %>/mqdefault.jpg" alt="<%= video.title.text %>" class="w-full h-auto rounded">
+                  </a>
+                    <div class="mt-2">
+                        <p class="text-sm text-gray-400"><a href="/gen/u/<%= video.author.id %>"><%= video.author.name %></a></p>
+                        <p class="text-lg font-bold">プレイリスト(<%= video.video_count?.text %>本以上の動画)</p>
+                    </div>
+                </div>
+              <% } else if (video.type.endsWith("Channel")) { %>
+                <div class="result-item bg-gray-600 p-4 rounded">
+                  <a href="/gen/c/<%= video.author.id %>">
+                    <img src="<%= video.author.thumbnails[0].url %>" alt="<%= video.author.name %>" class="w-full h-auto rounded">
+                  </a>
+                    <div class="mt-2">
+                        <p class="text-lg font-bold"><%= video.author.name %></p>
+                        <p class="text-sm text-gray-400"><%= video.description_snippet?.text %></p>
+                        <p class="text-xs text-gray-500"><%= video.subscriber_count?.text %> • <%= video.videos?.text || video.video_count?.text %></p>
+                    </div>
+                </div>
+              <% } %>
+            <% }); %>
+        </div>
+      <div style="display:flex;justify-content:center;margin-top:40px;margin-bottom:24px;">
+    <a class="load-more-btn" href="/gen/ss?q=<%= query %>&p=<%= page+1 %>">もっと読み込む</a>
+</div>
+
+    </div>
+  
+<script>
+window.addEventListener("load", function() {
+  const query = '<%= query %>';
+  if (query) {
+      updateSearchHistory(query);
+  }
+});
+  
+const searchBox = document.getElementById('searchbox');
+const clearBtn = document.getElementById('clearBtn');
+function toggleClearButton() {
+    clearBtn.style.display = searchBox.value ? 'block' : 'none';
+}
+searchBox.addEventListener('input', toggleClearButton);
+clearBtn.addEventListener('click', () => {
+   searchBox.value = '';
+   searchBox.focus();
+   toggleClearButton();
+});
+toggleClearButton();
+  
+function updateSearchHistory(query) {
+    let history = JSON.parse(localStorage.getItem('searchHistory')) || [];
+    history = history.filter(item => item !== query);
+    history.unshift(query);
+    if (history.length > 16) {
+        history = history.slice(0, 16);
+   }
+   localStorage.setItem('searchHistory', JSON.stringify(history));
+}
+</script>
+</body>
+</html>

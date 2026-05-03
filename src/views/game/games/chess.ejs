@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>チェス</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: #1a1a2e; color: #fff; font-family: sans-serif; min-height: 100vh; display: flex; flex-direction: column; }
+header { background: rgba(10,10,10,0.9); border-bottom: 1px solid rgba(88,101,242,0.25); padding: 12px 20px; display: flex; align-items: center; gap: 16px; }
+header a { color: #b9bbbe; text-decoration: none; font-size: 0.9rem; }
+header a:hover { color: #fff; }
+header h1 { font-size: 1.1rem; font-weight: 700; }
+main { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 20px; gap: 16px; }
+#status { font-size: 1rem; font-weight: 600; color: #fff; min-height: 1.5em; }
+#status.check { color: #f04747; }
+#status.over { color: #faa61a; font-size: 1.2rem; }
+#board-wrap { position: relative; }
+#board {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    border: 2px solid rgba(88,101,242,0.5);
+    box-shadow: 0 0 30px rgba(88,101,242,0.2);
+}
+.cell {
+    width: 64px; height: 64px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; position: relative; user-select: none;
+}
+.cell.light { background: #f0d9b5; }
+.cell.dark  { background: #b58863; }
+.cell.selected { background: #7fc97f !important; }
+.cell.possible::after {
+    content: '';
+    position: absolute;
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    background: rgba(0,0,0,0.18);
+}
+.cell.possible.occupied::after {
+    width: 60px; height: 60px;
+    border-radius: 0;
+    background: none;
+    border: 4px solid rgba(0,0,0,0.25);
+    border-radius: 50%;
+}
+.cell.last-from { background: rgba(255,213,0,0.5) !important; }
+.cell.last-to   { background: rgba(255,213,0,0.4) !important; }
+.piece { font-size: 42px; line-height: 1; pointer-events: none; text-shadow: 0 1px 2px rgba(0,0,0,0.4); }
+.coords-row { display: flex; justify-content: space-around; width: 512px; padding: 2px 0; }
+.coords-row span { width: 64px; text-align: center; font-size: 0.7rem; color: #72767d; }
+.coords-col { display: flex; flex-direction: column; justify-content: space-around; height: 512px; padding: 0 4px; }
+.coords-col span { height: 64px; display: flex; align-items: center; font-size: 0.7rem; color: #72767d; }
+#controls { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+button {
+    padding: 8px 20px; border-radius: 8px; border: none; cursor: pointer;
+    background: linear-gradient(135deg, #5865F2, #7289DA); color: #fff;
+    font-weight: 600; font-size: 0.875rem; transition: opacity 0.2s;
+}
+button:hover { opacity: 0.85; }
+button.secondary { background: rgba(88,101,242,0.2); border: 1px solid rgba(88,101,242,0.3); }
+#thinking { font-size: 0.85rem; color: #72767d; min-height: 1.2em; }
+#captured { display: flex; gap: 16px; font-size: 0.85rem; color: #b9bbbe; min-height: 1.5em; }
+@media (max-width: 560px) {
+    .cell { width: 40px; height: 40px; }
+    .piece { font-size: 26px; }
+    .cell.possible::after { width: 18px; height: 18px; }
+    .cell.possible.occupied::after { width: 38px; height: 38px; }
+    .coords-row { width: 320px; }
+    .coords-row span { width: 40px; }
+    .coords-col { height: 320px; }
+    .coords-col span { height: 40px; }
+}
+</style>
+</head>
+<body>
+<header>
+    <a href="/game">← ゲーム</a>
+    <h1>チェス</h1>
+</header>
+<main>
+    <div id="status">白番 (あなた)</div>
+    <div style="display:flex;align-items:center;gap:4px;">
+        <div class="coords-col" id="col-coords"></div>
+        <div>
+            <div id="board"></div>
+            <div class="coords-row" id="row-coords"></div>
+        </div>
+    </div>
+    <div id="thinking"></div>
+    <div id="captured"></div>
+    <div id="controls">
+        <button onclick="newGame()">新しいゲーム</button>
+        <button class="secondary" onclick="undoMove()">1手戻す</button>
+    </div>
+</main>
+
+<script>
+// ─── 定数 ───────────────────────────────────────────────────
+const GLYPHS = { wP:'♙',wN:'♘',wB:'♗',wR:'♖',wQ:'♕',wK:'♔', bP:'♟',bN:'♞',bB:'♝',bR:'♜',bQ:'♛',bK:'♚' };
+const VAL = { P:100, N:320, B:330, R:500, Q:900, K:20000 };
+const PST = {
+    P:[[0,0,0,0,0,0,0,0],[50,50,50,50,50,50,50,50],[10,10,20,30,30,20,10,10],[5,5,10,25,25,10,5,5],[0,0,0,20,20,0,0,0],[5,-5,-10,0,0,-10,-5,5],[5,10,10,-20,-20,10,10,5],[0,0,0,0,0,0,0,0]],
+    N:[[-50,-40,-30,-30,-30,-30,-40,-50],[-40,-20,0,0,0,0,-20,-40],[-30,0,10,15,15,10,0,-30],[-30,5,15,20,20,15,5,-30],[-30,0,15,20,20,15,0,-30],[-30,5,10,15,15,10,5,-30],[-40,-20,0,5,5,0,-20,-40],[-50,-40,-30,-30,-30,-30,-40,-50]],
+    B:[[-20,-10,-10,-10,-10,-10,-10,-20],[-10,0,0,0,0,0,0,-10],[-10,0,5,10,10,5,0,-10],[-10,5,5,10,10,5,5,-10],[-10,0,10,10,10,10,0,-10],[-10,10,10,10,10,10,10,-10],[-10,5,0,0,0,0,5,-10],[-20,-10,-10,-10,-10,-10,-10,-20]],
+    R:[[0,0,0,0,0,0,0,0],[5,10,10,10,10,10,10,5],[-5,0,0,0,0,0,0,-5],[-5,0,0,0,0,0,0,-5],[-5,0,0,0,0,0,0,-5],[-5,0,0,0,0,0,0,-5],[-5,0,0,0,0,0,0,-5],[0,0,0,5,5,0,0,0]],
+    Q:[[-20,-10,-10,-5,-5,-10,-10,-20],[-10,0,0,0,0,0,0,-10],[-10,0,5,5,5,5,0,-10],[-5,0,5,5,5,5,0,-5],[0,0,5,5,5,5,0,-5],[-10,5,5,5,5,5,0,-10],[-10,0,5,0,0,0,0,-10],[-20,-10,-10,-5,-5,-10,-10,-20]],
+    K:[[-30,-40,-40,-50,-50,-40,-40,-30],[-30,-40,-40,-50,-50,-40,-40,-30],[-30,-40,-40,-50,-50,-40,-40,-30],[-30,-40,-40,-50,-50,-40,-40,-30],[-20,-30,-30,-40,-40,-30,-30,-20],[-10,-20,-20,-20,-20,-20,-20,-10],[20,20,0,0,0,0,20,20],[20,30,10,0,0,10,30,20]]
+};
+
+// ─── ゲーム状態 ──────────────────────────────────────────────
+let board, turn, ep, castling, selected, targets, gameOver, history;
+
+function pc(p) { return p ? p[0] : null; }
+function pt(p) { return p ? p[1] : null; }
+function opp(c) { return c==='w'?'b':'w'; }
+
+function initBoard() {
+    return [
+        ['bR','bN','bB','bQ','bK','bB','bN','bR'],
+        ['bP','bP','bP','bP','bP','bP','bP','bP'],
+        ['','','','','','','',''],['','','','','','','',''],
+        ['','','','','','','',''],['','','','','','','',''],
+        ['wP','wP','wP','wP','wP','wP','wP','wP'],
+        ['wR','wN','wB','wQ','wK','wB','wN','wR'],
+    ];
+}
+
+function newGame() {
+    board = initBoard();
+    turn = 'w'; ep = null;
+    castling = {wK:true,wQ:true,bK:true,bQ:true};
+    selected = null; targets = []; gameOver = false; history = [];
+    setStatus('白番 (あなた)', '');
+    render();
+}
+
+// ─── 疑似合法手生成 ──────────────────────────────────────────
+function pseudoMoves(b, r, c, epSq, cas) {
+    const p = b[r][c]; if (!p) return [];
+    const C = pc(p), T = pt(p), moves = [];
+    const add = (tr,tc,sp) => { if(tr>=0&&tr<8&&tc>=0&&tc<8) moves.push({from:[r,c],to:[tr,tc],sp}); };
+
+    if (T==='P') {
+        const d=C==='w'?-1:1, start=C==='w'?6:1;
+        if (!b[r+d]?.[c]) { add(r+d,c); if(r===start&&!b[r+2*d]?.[c]) add(r+2*d,c,'dp'); }
+        for (const dc of [-1,1]) {
+            if (b[r+d]?.[c+dc] && pc(b[r+d][c+dc])===opp(C)) add(r+d,c+dc);
+            if (epSq && epSq[0]===r+d && epSq[1]===c+dc) add(r+d,c+dc,'ep');
+        }
+    } else if (T==='N') {
+        for (const [dr,dc] of [[-2,-1],[-2,1],[-1,-2],[-1,2],[1,-2],[1,2],[2,-1],[2,1]])
+            if (pc(b[r+dr]?.[c+dc])!==C) add(r+dr,c+dc);
+    } else {
+        if (T==='B'||T==='Q') for (const [dr,dc] of [[-1,-1],[-1,1],[1,-1],[1,1]]) for(let i=1;i<8;i++){const[tr,tc]=[r+dr*i,c+dc*i];if(tr<0||tr>7||tc<0||tc>7)break;if(pc(b[tr][tc])===C)break;add(tr,tc);if(b[tr][tc])break;}
+        if (T==='R'||T==='Q') for (const [dr,dc] of [[-1,0],[1,0],[0,-1],[0,1]]) for(let i=1;i<8;i++){const[tr,tc]=[r+dr*i,c+dc*i];if(tr<0||tr>7||tc<0||tc>7)break;if(pc(b[tr][tc])===C)break;add(tr,tc);if(b[tr][tc])break;}
+    }
+    if (T==='K') {
+        for (const [dr,dc] of [[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]])
+            if (pc(b[r+dr]?.[c+dc])!==C) add(r+dr,c+dc);
+        const kr=C==='w'?7:0;
+        if (r===kr&&c===4) {
+            if (cas[C+'K']&&!b[kr][5]&&!b[kr][6]) add(kr,6,'cK');
+            if (cas[C+'Q']&&!b[kr][3]&&!b[kr][2]&&!b[kr][1]) add(kr,2,'cQ');
+        }
+    }
+    return moves;
+}
+
+function applyMove(b, mv, epSq, cas) {
+    const nb = b.map(r=>[...r]);
+    const [fr,fc]=[...mv.from], [tr,tc]=[...mv.to];
+    const p=nb[fr][fc], C=pc(p);
+    let nep=null, ncas={...cas};
+
+    if (mv.sp==='ep') nb[C==='w'?tr+1:tr-1][tc]='';
+    if (mv.sp==='cK') { nb[tr][tc-1]=nb[tr][7]; nb[tr][7]=''; }
+    if (mv.sp==='cQ') { nb[tr][tc+1]=nb[tr][0]; nb[tr][0]=''; }
+    if (mv.sp==='dp') nep=[(fr+tr)/2,tc];
+
+    nb[tr][tc]=p; nb[fr][fc]='';
+    if (pt(p)==='P'&&(tr===0||tr===7)) nb[tr][tc]=C+'Q';
+
+    if (p==='wK'){ncas.wK=false;ncas.wQ=false;}
+    if (p==='bK'){ncas.bK=false;ncas.bQ=false;}
+    if (fr===7&&fc===0) ncas.wQ=false;
+    if (fr===7&&fc===7) ncas.wK=false;
+    if (fr===0&&fc===0) ncas.bQ=false;
+    if (fr===0&&fc===7) ncas.bK=false;
+
+    return {board:nb, ep:nep, castling:ncas};
+}
+
+function isAttacked(b, r, c, byC) {
+    for (let fr=0;fr<8;fr++) for (let fc=0;fc<8;fc++) {
+        if (pc(b[fr][fc])!==byC) continue;
+        for (const m of pseudoMoves(b,fr,fc,null,{wK:false,wQ:false,bK:false,bQ:false}))
+            if (m.to[0]===r&&m.to[1]===c&&m.sp!=='cK'&&m.sp!=='cQ') return true;
+    }
+    return false;
+}
+
+function findKing(b, C) {
+    for (let r=0;r<8;r++) for (let c=0;c<8;c++) if(b[r][c]===C+'K') return [r,c];
+    return null;
+}
+
+function inCheck(b, C) { const k=findKing(b,C); return k&&isAttacked(b,k[0],k[1],opp(C)); }
+
+function legalMoves(b, C, epSq, cas) {
+    const moves=[];
+    for (let r=0;r<8;r++) for (let c=0;c<8;c++) {
+        if (pc(b[r][c])!==C) continue;
+        for (const m of pseudoMoves(b,r,c,epSq,cas)) {
+            if (m.sp==='cK'&&(inCheck(b,C)||isAttacked(b,m.from[0],5,opp(C))||isAttacked(b,m.from[0],6,opp(C)))) continue;
+            if (m.sp==='cQ'&&(inCheck(b,C)||isAttacked(b,m.from[0],3,opp(C))||isAttacked(b,m.from[0],2,opp(C)))) continue;
+            const r2=applyMove(b,m,epSq,cas);
+            if (!inCheck(r2.board,C)) moves.push(m);
+        }
+    }
+    return moves;
+}
+
+// ─── 評価関数 ────────────────────────────────────────────────
+function evaluate(b) {
+    let s=0;
+    for (let r=0;r<8;r++) for (let c=0;c<8;c++) {
+        const p=b[r][c]; if(!p) continue;
+        const C=pc(p),T=pt(p);
+        const pr=C==='w'?r:7-r;
+        s+=(C==='w'?1:-1)*(VAL[T]+(PST[T]?PST[T][pr][c]:0));
+    }
+    return s;
+}
+
+// ─── ミニマックス ────────────────────────────────────────────
+function minimax(b, depth, alpha, beta, maxing, epSq, cas) {
+    const C=maxing?'w':'b';
+    const moves=legalMoves(b,C,epSq,cas);
+    if (!moves.length) return inCheck(b,C)?(maxing?-90000:90000):0;
+    if (depth===0) return evaluate(b);
+    if (maxing) {
+        let best=-Infinity;
+        for (const m of moves) {
+            const r=applyMove(b,m,epSq,cas);
+            best=Math.max(best,minimax(r.board,depth-1,alpha,beta,false,r.ep,r.castling));
+            alpha=Math.max(alpha,best); if(beta<=alpha) break;
+        }
+        return best;
+    } else {
+        let best=Infinity;
+        for (const m of moves) {
+            const r=applyMove(b,m,epSq,cas);
+            best=Math.min(best,minimax(r.board,depth-1,alpha,beta,true,r.ep,r.castling));
+            beta=Math.min(beta,best); if(beta<=alpha) break;
+        }
+        return best;
+    }
+}
+
+function bestAiMove() {
+    const moves=legalMoves(board,'b',ep,castling);
+    let best=Infinity, bestM=null;
+    for (const m of moves) {
+        const r=applyMove(board,m,ep,castling);
+        const v=minimax(r.board,2,-Infinity,Infinity,true,r.ep,r.castling);
+        if (v<best){best=v;bestM=m;}
+    }
+    return bestM;
+}
+
+// ─── UI ──────────────────────────────────────────────────────
+let lastMove = null;
+
+function render() {
+    const boardEl = document.getElementById('board');
+    boardEl.innerHTML = '';
+    for (let r=0;r<8;r++) for (let c=0;c<8;c++) {
+        const cell = document.createElement('div');
+        cell.className = 'cell ' + ((r+c)%2===0?'light':'dark');
+        cell.dataset.r = r; cell.dataset.c = c;
+
+        if (selected && selected[0]===r && selected[1]===c) cell.classList.add('selected');
+        if (lastMove) {
+            if (lastMove.from[0]===r&&lastMove.from[1]===c) cell.classList.add('last-from');
+            if (lastMove.to[0]===r&&lastMove.to[1]===c) cell.classList.add('last-to');
+        }
+        const isTarget = targets.some(m=>m.to[0]===r&&m.to[1]===c);
+        if (isTarget) { cell.classList.add('possible'); if(board[r][c]) cell.classList.add('occupied'); }
+
+        if (board[r][c]) {
+            const span = document.createElement('span');
+            span.className = 'piece';
+            span.textContent = GLYPHS[board[r][c]];
+            cell.appendChild(span);
+        }
+        cell.addEventListener('click', () => onCellClick(r, c));
+        boardEl.appendChild(cell);
+    }
+
+    // 座標
+    const cols = document.getElementById('col-coords');
+    const rows = document.getElementById('row-coords');
+    cols.innerHTML = ''; rows.innerHTML = '';
+    for (let i=0;i<8;i++) { const s=document.createElement('span'); s.textContent=8-i; cols.appendChild(s); }
+    for (let i=0;i<8;i++) { const s=document.createElement('span'); s.textContent='abcdefgh'[i]; rows.appendChild(s); }
+
+    // 取った駒
+    const cap = document.getElementById('captured');
+    const pieces = {w:'',b:''};
+    const ini = initBoard().flat().filter(Boolean).reduce((a,p)=>{a[p]=(a[p]||0)+1;return a;},{});
+    const cur = board.flat().filter(Boolean).reduce((a,p)=>{a[p]=(a[p]||0)+1;return a;},{});
+    for (const [p,n] of Object.entries(ini)) for(let i=0;i<n-(cur[p]||0);i++) pieces[pc(p)===opp(pc(p))?pc(p):opp(pc(p))]+=GLYPHS[p];
+    cap.innerHTML = `白が取った駒: ${pieces.w||'なし'} &nbsp; 黒が取った駒: ${pieces.b||'なし'}`;
+}
+
+function onCellClick(r, c) {
+    if (gameOver || turn !== 'w') return;
+
+    const hit = targets.find(m=>m.to[0]===r&&m.to[1]===c);
+    if (hit) {
+        doMove(hit);
+        return;
+    }
+    if (pc(board[r][c]) === 'w') {
+        selected = [r, c];
+        targets = legalMoves(board,'w',ep,castling).filter(m=>m.from[0]===r&&m.from[1]===c);
+    } else {
+        selected = null; targets = [];
+    }
+    render();
+}
+
+function doMove(mv) {
+    history.push({ board: board.map(r=>[...r]), ep, castling, lastMove });
+    const res = applyMove(board, mv, ep, castling);
+    board = res.board; ep = res.ep; castling = res.castling;
+    lastMove = mv; selected = null; targets = [];
+    turn = opp(turn);
+    render();
+    checkGameOver();
+    if (!gameOver && turn === 'b') setTimeout(aiMove, 80);
+}
+
+function aiMove() {
+    setStatus('黒番 (AI思考中...)', '');
+    document.getElementById('thinking').textContent = '考え中...';
+    setTimeout(() => {
+        const mv = bestAiMove();
+        document.getElementById('thinking').textContent = '';
+        if (!mv) { setStatus('黒に合法手なし', 'over'); gameOver=true; render(); return; }
+        history.push({ board: board.map(r=>[...r]), ep, castling, lastMove });
+        const res = applyMove(board, mv, ep, castling);
+        board=res.board; ep=res.ep; castling=res.castling;
+        lastMove=mv; turn='w';
+        render();
+        checkGameOver();
+        if (!gameOver) setStatus('白番 (あなた)', inCheck(board,'w')?'check':'');
+    }, 10);
+}
+
+function checkGameOver() {
+    const moves = legalMoves(board, turn, ep, castling);
+    if (!moves.length) {
+        if (inCheck(board, turn)) {
+            const winner = turn==='w'?'黒':'白';
+            setStatus(`チェックメイト！ ${winner}の勝ち`, 'over');
+        } else {
+            setStatus('ステイルメイト (引き分け)', 'over');
+        }
+        gameOver = true;
+    } else if (inCheck(board, turn)) {
+        setStatus(turn==='w'?'白番 (チェック！)':'黒番 (チェック！)', 'check');
+    }
+}
+
+function setStatus(text, cls) {
+    const el = document.getElementById('status');
+    el.textContent = text;
+    el.className = cls || '';
+}
+
+function undoMove() {
+    if (history.length < 2) return; // AIの手+自分の手で2つ必要
+    history.pop(); // AIの手を戻す
+    const s = history.pop(); // 自分の手を戻す
+    board=s.board; ep=s.ep; castling=s.castling; lastMove=s.lastMove;
+    turn='w'; selected=null; targets=[]; gameOver=false;
+    setStatus('白番 (あなた)', '');
+    render();
+}
+
+newGame();
+</script>
+</body>
+</html>

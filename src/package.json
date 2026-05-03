@@ -1,0 +1,35 @@
+{
+  "name": "yuatube",
+  "version": "0.0.1",
+  "main": "server.js",
+  "license": "Apache-2.0",
+  "dependencies": {
+    "express": "^4.21.2",
+    "compression": "^1.8.0",
+    "ejs": "^3.1.10",
+    "axios": "^1.8.1",
+    "ytsr": "latest",
+    "ytpl": "latest",
+    "cookie-parser": "^1.4.7",
+    "soundcloud-downloader": "^1.0.0",
+    "youtubei.js": "latest",
+    "undici": "latest",
+    "miniget": "^4.2.3",
+    "cors": "^2.8.5",
+    "twitter-openapi-typescript": "latest"
+  },
+  "description": "yuatube",
+  "engines": {
+    "node": "20.x"
+  },
+  "author": "eris/uaaw",
+  "bugs": {
+    "email": "a@od.je"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  }
+}

@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bluesky 検索</title>
+    <script src="/js/tailwindcss.js"></script>
+    <link rel="stylesheet" href="/css/page.css">
+</head>
+<body class="bg-gray-900 text-white">
+    <header class="bg-gray-800 p-4 flex justify-between items-center">
+        <a href="/sonota/bluesky" class="text-gray-300 hover:text-white">← Bluesky</a>
+        <h1 class="text-xl font-bold">Bluesky 検索</h1>
+        <div></div>
+    </header>
+
+    <div class="container mx-auto p-6 max-w-2xl">
+        <form method="get" action="/sonota/bluesky/search" class="flex gap-2 mb-6">
+            <input type="text" name="q" value="<%= q || '' %>"
+                placeholder="キーワードを入力..."
+                class="flex-1 p-3 rounded bg-gray-700 text-white outline-none focus:ring-2 focus:ring-blue-400">
+            <button type="submit" class="bg-blue-600 hover:bg-blue-500 px-6 py-3 rounded font-bold transition">
+                検索
+            </button>
+        </form>
+
+        <% if (error) { %>
+        <div class="bg-red-800 text-white p-4 rounded mb-4">
+            <p>エラー: <%= error %></p>
+        </div>
+        <% } %>
+
+        <% if (posts && posts.length === 0) { %>
+        <p class="text-gray-400 text-center">検索結果がありません。</p>
+        <% } %>
+
+        <% if (posts && posts.length > 0) { %>
+        <div class="flex flex-col gap-4">
+            <% posts.forEach(function(post) { %>
+            <% const rkey = (post.uri || '').split('/').pop(); %>
+            <% const handle = post.author?.handle || ''; %>
+            <div style="background:rgba(15,20,30,0.95);border:1px solid rgba(100,149,237,0.35);border-radius:12px;padding:16px;">
+                <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+                    <% if (post.author?.avatar) { %>
+                    <img src="<%= post.author.avatar %>" alt="avatar" style="width:36px;height:36px;border-radius:50%;flex-shrink:0;">
+                    <% } %>
+                    <div style="flex:1;min-width:0;">
+                        <p style="font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"><%= post.author?.displayName || handle %></p>
+                        <p style="font-size:0.8rem;color:#7289da;">@<%= handle %></p>
+                    </div>
+                    <% if (handle && rkey) { %>
+                    <a href="/sonota/bluesky/umekomi?url=https://bsky.app/profile/<%= handle %>/post/<%= rkey %>"
+                       style="color:#7289da;font-size:0.8rem;white-space:nowrap;flex-shrink:0;">詳細</a>
+                    <% } %>
+                </div>
+                <p style="color:#dcddde;line-height:1.6;white-space:pre-wrap;word-break:break-word;font-size:0.95rem;"><%= post.text || post.record?.text || '' %></p>
+                <% if (post.replyCount != null || post.likeCount != null) { %>
+                <div style="display:flex;gap:16px;margin-top:10px;font-size:0.8rem;color:#72767d;">
+                    <span>返信 <%= post.replyCount || 0 %></span>
+                    <span>RT <%= post.repostCount || 0 %></span>
+                    <span>いいね <%= post.likeCount || 0 %></span>
+                </div>
+                <% } %>
+            </div>
+            <% }); %>
+        </div>
+        <% } %>
+    </div>
+</body>
+</html>
