@@ -6,8 +6,7 @@ const user_agent = process.env.USER_AGENT || "Mozilla/5.0 (Windows NT 10.0; Win6
 
 router.get('/gethtml/:Url', async (req, res) => {
   const { Url } = req.params;
-  const replacedUrl = decodeURIComponent(Url);
-  const url = replacedUrl.replace(/\.wakame02\./g, '.');
+  const url = decodeURIComponent(Url);
   if (!url) {
     return res.status(400).send('URLが入力されていません');
   }
@@ -68,8 +67,7 @@ function escapeHTML(html) {
 
 router.get('/get/:Url', async (req, res) => {
   const { Url } = req.params;
-  const replacedUrl = decodeURIComponent(Url);
-  const url = replacedUrl.replace(/\.wakame02\./g, '.');
+  const url = decodeURIComponent(Url);
   const baseUrl = new URL(url);
   if (!url) {
     return res.status(400).send('URLが入力されていません');
@@ -97,8 +95,7 @@ router.get('/get/:Url', async (req, res) => {
         console.error('Error parsing URL:', url, e);
         return match;
       }
-      const replacedAbsoluteUrl = absoluteUrl.replace(/\./g, '.wakame02.');
-      const encoded = encodeURIComponent(replacedAbsoluteUrl);
+      const encoded = encodeURIComponent(absoluteUrl);
       return `<a ${beforeHref}href="/tools/html/get/${encoded}"${afterHref}>${innerText}</a>`;
     });
     res.send(html);
