@@ -37,13 +37,23 @@ COOKIE_SECRET
   クッキーの署名に使うシークレット文字列。本番環境では必ず設定すること。
   設定しない場合は tensai_cookie_secret が使われる。
 
+BSKY_IDENTIFIER
+  Bluesky の検索機能に使うアカウントの handle または email。
+  例: yourhandle.bsky.social
+
+BSKY_PASSWORD
+  上記アカウントのアプリパスワード。
+  Bluesky の設定 → プライバシーとセキュリティ → アプリパスワード で発行できる。
+  メインパスワードではなくアプリパスワードを使うことを推奨。
+  未設定の場合、Bluesky 検索は利用できない。
+
 
 ## 認証
 
-/home にアクセスして合言葉を入力するとサイト内に入れる。
-合言葉は SHA-256 でハッシュ化して server.js の SECRET_HASH に書いてある。
+/homeにアクセスして合言葉を入力するとサイト内に入れる。
+合言葉は SHA-256 でハッシュ化してserver.jsのSECRET_HASH に書いてある。
 
-合言葉を変更したい場合は以下で新しいハッシュを生成して SECRET_HASH を書き換える。
+合言葉を変更したい場合は以下で新しいハッシュを生成してSECRET_HASHを書き換える。
 
     echo -n "新しい合言葉" | sha256sum
 
@@ -67,7 +77,7 @@ COOKIE_SECRET
   - ニコニコ動画: 動画再生 + 検索
   - Bluesky: 投稿表示 + 検索
 
-/tensais
+/music
   音楽プレイヤー。
 
 /game
