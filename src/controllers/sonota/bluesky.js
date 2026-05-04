@@ -4,6 +4,31 @@ const router = express.Router();
 const axios = require("axios");
 
 const BSKY = 'https://public.api.bsky.app/xrpc';
+const BSKY_AUTH = 'https://bsky.social/xrpc';
+
+let bskySession = null;
+
+async function getBskyToken() {
+    if (bskySession && Date.now() < bskySession.expiresAt) {
+        return bskySession.accessJwt;
+    }
+    if (bskySession?.refreshJwt) {
+        try {
+            const r = await axios.post(`${BSKY_AUTH}/com.atproto.server.refreshSession`, null, {
+                headers: { Authorization: `Bearer ${bskySession.refreshJwt}` },
+                timeout: 8000,
+            });
+            bskySession = { accessJwt: r.data.accessJwt, refreshJwt: r.data.refreshJwt, expiresAt: Date.now() + 90 * 60 * 1000 };
+            return bskySession.accessJwt;
+        } catch (_) { bskySession = null; }
+    }
+    const identifier = process.env.BSKY_IDENTIFIER;
+    const password = process.env.BSKY_PASSWORD;
+    if (!identifier || !password) throw new Error('BSKY_IDENTIFIER / BSKY_PASSWORD が設定されていません');
+    const r = await axios.post(`${BSKY_AUTH}/com.atproto.server.createSession`, { identifier, password }, { timeout: 8000 });
+    bskySession = { accessJwt: r.data.accessJwt, refreshJwt: r.data.refreshJwt, expiresAt: Date.now() + 90 * 60 * 1000 };
+    return bskySession.accessJwt;
+}
 
 function parseUrl(url) {
     // https://bsky.app/profile/{handle_or_did}/post/{rkey}
@@ -54,17 +79,13 @@ router.get("/search", async (req, res) => {
     if (!q) return res.render("sonota/bluesky/search", { posts: null, q: '', error: null });
 
     try {
-        const r = await axios.get('https://search.bsky.social/search/posts', {
-            params: { q, count: 25 },
-            headers: {
-                'Accept': 'application/json',
-                'User-Agent': 'Mozilla/5.0 (compatible; yuatube/1.0)',
-            },
+        const token = await getBskyToken();
+        const r = await axios.get(`${BSKY}/app.bsky.feed.searchPosts`, {
+            params: { q, limit: 25 },
+            headers: { Authorization: `Bearer ${token}` },
             timeout: 8000,
         });
-        // search.bsky.social は { hits: [{ $source: { ... } }] } 形式
-        const hits = r.data?.hits || [];
-        const posts = hits.map(h => h['$source'] || h._source || h).filter(Boolean);
+        const posts = r.data?.posts || [];
         res.render("sonota/bluesky/search", { posts, q, error: null });
     } catch (e) {
         res.render("sonota/bluesky/search", { posts: null, q, error: e.message });
