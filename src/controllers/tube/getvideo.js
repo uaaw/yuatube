@@ -14,7 +14,7 @@ router.get('/:id', async (req, res) => {
         return res.redirect(`/gen/yt/nocookie/${videoId}`);
     }
 
-    if (cookies.playbackMode === "invidious") {
+    if (cookies.playbackMode === "invidious" || !cookies.playbackMode) {
         return res.redirect(`/gen/yt/invidious/${videoId}`);
     }
 
