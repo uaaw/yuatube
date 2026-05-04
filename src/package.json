@@ -9,7 +9,6 @@
     "ejs": "^3.1.10",
     "axios": "^1.8.1",
     "ytsr": "latest",
-    "ytpl": "latest",
     "cookie-parser": "^1.4.7",
     "soundcloud-downloader": "^1.0.0",
     "youtubei.js": "latest",

@@ -1,5 +1,4 @@
 let client = null;
-const ytpl = require("ytpl");
 
 function setClient(newClient) {
     client = newClient;
@@ -87,9 +86,19 @@ async function getComments(id) {
 async function getChannel(id) {
     try {
         const channel = await client.getChannel(id);
-        const recentVideos = await ytpl(id, { pages: 1 });
+
+        let recentVideos = { items: [] };
+        try {
+            const videosTab = await channel.getVideos();
+            const raw = videosTab.current_tab?.content?.contents || [];
+            const items = raw.map(i => i.type === 'RichItem' ? i.content : i).filter(Boolean);
+            recentVideos = { items };
+        } catch (e) {
+            console.error("[getChannel] getVideos failed:", e.message);
+        }
         return { channel, recentVideos };
     } catch (error) {
+        console.error("getChannel error:", error.message);
         return null;
     }
 }
