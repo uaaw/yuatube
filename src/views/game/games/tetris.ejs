@@ -1,0 +1,31 @@
+<!--
+  Tetris game embedded from react-tetris
+  Original: https://github.com/chvin/react-tetris
+  Copyright (c) chvin
+  Licensed under the Apache License, Version 2.0
+  http://www.apache.org/licenses/LICENSE-2.0
+-->
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>テトリス</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: #1a1a2e; color: #fff; font-family: sans-serif; height: 100vh; display: flex; flex-direction: column; }
+header { background: rgba(10,10,10,0.9); border-bottom: 1px solid rgba(88,101,242,0.25); padding: 12px 20px; display: flex; align-items: center; gap: 16px; flex-shrink: 0; }
+header a { color: #b9bbbe; text-decoration: none; font-size: 0.9rem; }
+header a:hover { color: #fff; }
+header h1 { font-size: 1.1rem; font-weight: 700; }
+iframe { flex: 1; border: none; width: 100%; }
+</style>
+</head>
+<body>
+<header>
+  <a href="/game">← ゲーム一覧</a>
+  <h1>テトリス</h1>
+</header>
+<iframe src="/tetris/index.html" allowfullscreen></iframe>
+</body>
+</html>
