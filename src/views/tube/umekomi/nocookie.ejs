@@ -66,7 +66,7 @@
             <button onclick="window.location.href='/gen/cl/fav'">お気に入り</button>
             <button onclick="window.location.href='/gen/cl/history'">履歴</button>
             <button onclick="window.open('/gen/back/vi/<%= videoId %>/maxresdefault.jpg', '_blank');">サムネをダウンロード</button>
-            <button onclick="window.location.href='/gen/watch/<%= videoId %>'">通常再生に切り替え</button>
+            <button onclick="window.location.href='/gen/watch/<%= videoId %><% if (typeof playlist !== 'undefined' && playlist) { %>?playlist=<%= playlist %><% } %>'">通常再生に切り替え</button>
         </nav>
     </div>
 
@@ -223,7 +223,11 @@ $('#saveSettings').click(function() {
     document.cookie = `playbackMode=${mode}; path=/; max-age=31536000`;
     $('#controlPanel').toggleClass('open');
     showMessage(`再生方法を${mode}に変更するわ`);
-    window.location.href = `/gen/redirect/mode/<%= videoId %>?mode=${mode}`;
+    const params = new URLSearchParams(window.location.search);
+    const playlist = params.get('playlist');
+    let url = `/gen/redirect/mode/<%= videoId %>?mode=${mode}`;
+    if (playlist) url += `&playlist=${encodeURIComponent(playlist)}`;
+    window.location.href = url;
 });
 
 $('#toggleToolbar').click(() => $('#toolbar').addClass('open'));
@@ -296,6 +300,8 @@ function showMessage(text) {
     const timer = setTimeout(close, 3500);
     el.querySelector('button').addEventListener('click', ()=>{ clearTimeout(timer); close(); });
 }
+
+initPlaylist('<%= videoId %>', 'nocookie');
 </script>
 </body>
 </html>

@@ -479,7 +479,11 @@ $(document).ready(function() {
         const mode = $('input[name="playbackMode"]:checked').val();
         document.cookie = `playbackMode=${mode}; path=/; max-age=31536000`;
         showMessage(`再生方法を${mode}に変更するわ`);
-        window.location.href = `/gen/redirect/mode/<%= videoId %>?mode=${mode}`;
+        const params = new URLSearchParams(window.location.search);
+        const playlist = params.get('playlist');
+        let url = `/gen/redirect/mode/<%= videoId %>?mode=${mode}`;
+        if (playlist) url += `&playlist=${encodeURIComponent(playlist)}`;
+        window.location.href = url;
     });
 });
 
@@ -868,6 +872,8 @@ function showerrorMessage(text) {
         moved = false;
     });
 }
+
+initPlaylist('<%= videoId %>', 'normal');
 </script>
 <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'99c71c8cc95796bc',t:'MTc2Mjc5NDA4Mw=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
