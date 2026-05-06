@@ -8,18 +8,21 @@ const VIDEO_SERVER = process.env.VIDEO_SERVER || "";
 
 router.get('/:id', async (req, res) => {
     const videoId = req.params.id;
-    const cookies = parseCookies(req);
-
-    if (cookies.playbackMode === "nocookie") {
-        return res.redirect(`/gen/yt/nocookie/${videoId}`);
-    }
-
-    if (cookies.playbackMode === "invidious" || !cookies.playbackMode) {
-        return res.redirect(`/gen/yt/invidious/${videoId}`);
-    }
 
     if (!/^[a-zA-Z0-9_-]{11}$/.test(videoId)) {
         return res.status(400).send('videoIDが正しくありません');
+    }
+
+    const cookies = parseCookies(req);
+    const playlist = req.query.playlist;
+    const playlistQuery = playlist ? `?playlist=${encodeURIComponent(playlist)}` : '';
+
+    if (cookies.playbackMode === "nocookie") {
+        return res.redirect(`/gen/yt/nocookie/${videoId}${playlistQuery}`);
+    }
+
+    if (cookies.playbackMode === "invidious" || !cookies.playbackMode) {
+        return res.redirect(`/gen/yt/invidious/${videoId}${playlistQuery}`);
     }
 
     const customServer = req.query.server ? `https://${req.query.server}` : VIDEO_SERVER;
@@ -54,7 +57,7 @@ router.get('/:id', async (req, res) => {
             videoInfo = result.videoInfo;
         }
 
-        res.render('tube/watch.ejs', { videoData, videoInfo, videoId, baseUrl });
+        res.render('tube/watch.ejs', { videoData, videoInfo, videoId, baseUrl, playlist: req.query.playlist });
     } catch (error) {
         res.status(500).render('tube/mattev.ejs', {
             videoId,

@@ -41,10 +41,17 @@
         </nav>
     </header>
     <div class="container mx-auto p-4 mt-4 relative">
-        <h2 class="text-xl font-bold mb-4">お気に入り</h2>
-        <button id="clear-history" class="absolute top-0 right-0 m-4 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700">
-            全て解除
-        </button>
+        <div class="flex justify-between items-center mb-4">
+            <h2 class="text-xl font-bold">お気に入り</h2>
+            <div class="space-x-2">
+                <button id="play-playlist" class="hidden px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+                    プレイリストで再生
+                </button>
+                <button id="clear-history" class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700">
+                    全て解除
+                </button>
+            </div>
+        </div>
         <div id="history-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
             <p id="no-history" class="hidden">お気に入りした動画はありません(´・ω・｀)</p>
         </div>
@@ -61,21 +68,25 @@ function getHistoryFromLocalStorage() {
 }
 
 function displayHistory() {
-    const history = getHistoryFromLocalStorage().reverse();
+    const rawHistory = getHistoryFromLocalStorage();
+    const history = [...rawHistory].reverse();
     const historyList = document.getElementById("history-list");
     const noHistoryMsg = document.getElementById("no-history");
+    const playlistBtn = document.getElementById("play-playlist");
     historyList.innerHTML = "";
     if (!history || history.length === 0) {
         noHistoryMsg.classList.remove("hidden");
+        if (playlistBtn) playlistBtn.classList.add("hidden");
         return;
     } else {
         noHistoryMsg.classList.add("hidden");
+        if (playlistBtn) playlistBtn.classList.remove("hidden");
     }
     history.forEach((video, index) => {
         const item = document.createElement("div");
         item.className = "result-item  w-auto bg-gray-800 p-4 rounded relative";
         item.innerHTML = `
-            <a href="/gen/watch/${video.videoId}" class="thumbnail">
+            <a href="/gen/watch/${video.videoId}?playlist=fav" class="thumbnail">
                 <img loading="lazy" src="/gen/back/vi/${video.videoId}/mqdefault.jpg" alt="${video.videoTitle}" class="w-full h-auto rounded">
             </a>
             <div class="mt-2 flex items-center justify-between">
@@ -91,7 +102,7 @@ function displayHistory() {
 
 function clearHistory() {
   if (confirm("本当にお気に入りを解除すんの？")) {
-    localStorage.removeItem("tensaitubehistory");
+    localStorage.removeItem("tensaitubefavorites");
     showerrorMessage("お気に入りを解除したよ。");
     displayHistory();
   }
@@ -100,6 +111,15 @@ function clearHistory() {
 document.addEventListener("DOMContentLoaded", () => {
     displayHistory();
     document.getElementById("clear-history").addEventListener("click", clearHistory);
+    const playlistBtn = document.getElementById("play-playlist");
+    if (playlistBtn) {
+        playlistBtn.addEventListener("click", () => {
+            const history = getHistoryFromLocalStorage();
+            if (history.length > 0) {
+                window.location.href = `/gen/watch/${history[0].videoId}?playlist=fav`;
+            }
+        });
+    }
 });
   
 function showMessage(text) {

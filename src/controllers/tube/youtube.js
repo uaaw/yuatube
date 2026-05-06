@@ -29,6 +29,9 @@ async function getInvidiousVideoData(videoId, preferredServer = null) {
 
 router.get('/nocookie/:id', async (req, res) => {
     const videoId = req.params.id;
+    if (!/^[a-zA-Z0-9_-]{11}$/.test(videoId)) {
+        return res.status(400).send('videoIDが正しくありません');
+    }
     try {
         const videosrc = `https://www.youtube-nocookie.com/embed/${videoId}?rel=0&modestbranding=1`;
         const Info = await serverYt.infoGet(videoId);
@@ -44,7 +47,7 @@ router.get('/nocookie/:id', async (req, res) => {
             description: Info.secondary_info.description.text || "",
             watch_next_feed: serverYt.normalizeWatchNextFeed(Info.watch_next_feed),
         };
-        res.render('tube/umekomi/nocookie.ejs', { videosrc, videoInfo, videoId });
+        res.render('tube/umekomi/nocookie.ejs', { videosrc, videoInfo, videoId, playlist: req.query.playlist });
     } catch (error) {
         res.status(500).render('tube/mattev', {
             videoId,
@@ -91,7 +94,7 @@ router.get('/invidious/:id', async (req, res) => {
             };
         }
 
-        res.render('tube/umekomi/invidious.ejs', { streams, videoInfo, videoId, server, servers: INVIDIOUS_SERVERS });
+        res.render('tube/umekomi/invidious.ejs', { streams, videoInfo, videoId, server, servers: INVIDIOUS_SERVERS, playlist: req.query.playlist });
     } catch (error) {
         res.status(500).render('tube/mattev', {
             videoId,
