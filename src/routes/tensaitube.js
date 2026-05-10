@@ -76,6 +76,7 @@ router.get("/c/:id", async (req, res) => {
 
 router.use("/back", require("../controllers/tube/back"));
 router.use("/redirect", require("../controllers/tube/redirect"));
+router.use("/proxy", require("../controllers/tube/proxy"));
 router.use("/cl", require("../controllers/tube/cl"));
 
 module.exports = router;

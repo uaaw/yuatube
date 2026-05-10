@@ -81,7 +81,8 @@
                 <video id="invVideo" controls autoplay playsinline preload="auto"
                        poster="/gen/back/vi/<%= videoId %>/maxresdefault.jpg"
                        style="position:absolute;top:0;left:0;width:100%;height:100%;background:#000;"
-                       src="<%= streams[0].url %>">
+                       src="/gen/proxy/invidious/<%= videoId %>"
+                       data-original-url="<%= streams[0].url %>">
                 </video>
             </div>
 
@@ -383,6 +384,7 @@ function showMessage(text) {
     el.querySelector('button').addEventListener('click', ()=>{ clearTimeout(timer); close(); });
 }
 
+setupInvidiousProxyFallback('<%= videoId %>', <%- JSON.stringify(streams[0].url) %>);
 initPlaylist('<%= videoId %>', 'invidious');
 </script>
 </body>
