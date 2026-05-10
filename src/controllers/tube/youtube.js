@@ -11,16 +11,34 @@ const INVIDIOUS_SERVERS = [
     'https://inv.zoomerville.com',
 ];
 
-async function getInvidiousVideoData(videoId, preferredServer = null) {
-    const servers = preferredServer
-        ? [preferredServer, ...INVIDIOUS_SERVERS.filter(s => s !== preferredServer)]
-        : INVIDIOUS_SERVERS;
+const invidiousCache = new Map();
+const CACHE_TTL_MS = 300 * 1000; // 5分
+
+const HOST_REGEX = /^[a-zA-Z0-9][-a-zA-Z0-9.]*[a-zA-Z0-9]$/;
+
+async function getInvidiousVideoData(videoId, preferredServer = null, fastestServer = null) {
+    const now = Date.now();
+    const cached = invidiousCache.get(videoId);
+    if (cached) {
+        if ((now - cached.timestamp) < CACHE_TTL_MS) {
+            return cached.data;
+        }
+        invidiousCache.delete(videoId);
+    }
+
+    const servers = [
+        ...(fastestServer ? [fastestServer] : []),
+        ...(preferredServer ? [preferredServer] : []),
+        ...INVIDIOUS_SERVERS.filter(s => s !== fastestServer && s !== preferredServer)
+    ];
     for (const server of servers) {
         try {
             const r = await axios.get(`${server}/api/v1/videos/${videoId}`, { timeout: 5000 });
             const streams = r.data?.formatStreams;
             if (streams?.length) {
-                return { server, streams: [...streams].reverse() };
+                const result = { server, streams: [...streams].reverse() };
+                invidiousCache.set(videoId, { data: result, timestamp: Date.now() });
+                return result;
             }
         } catch (_) {}
     }
@@ -65,9 +83,10 @@ router.get('/invidious/:id', async (req, res) => {
         return res.status(400).send('videoIDが正しくありません');
     }
     try {
-        const preferredServer = req.query.server ? `https://${req.query.server}` : null;
+        const preferredServer = req.query.server && HOST_REGEX.test(req.query.server) ? `https://${req.query.server}` : null;
+        const fastestServer = req.query.fastest && HOST_REGEX.test(req.query.fastest) ? `https://${req.query.fastest}` : null;
         const [invResult, infoResult] = await Promise.allSettled([
-            getInvidiousVideoData(videoId, preferredServer),
+            getInvidiousVideoData(videoId, preferredServer, fastestServer),
             serverYt.infoGet(videoId),
         ]);
 

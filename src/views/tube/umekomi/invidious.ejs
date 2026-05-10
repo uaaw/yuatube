@@ -10,6 +10,8 @@
     <script src="/js/tube.js"></script>
     <script src="/js/watch.js"></script>
     <link rel="apple-touch-icon" href="/gen/back/vi/<%= videoId %>/maxresdefault.jpg">
+    <link rel="preconnect" href="<%= server %>">
+    <link rel="dns-prefetch" href="<%= server %>">
     <style>
         .iframe-container {
             position: relative;
@@ -76,7 +78,8 @@
     <div class="max-w-6xl mx-auto p-4 main-container" id="mainContainer">
         <div class="video-container" id="videoContainer">
             <div class="iframe-container">
-                <video id="invVideo" controls autoplay playsinline
+                <video id="invVideo" controls autoplay playsinline preload="auto"
+                       poster="/gen/back/vi/<%= videoId %>/maxresdefault.jpg"
                        style="position:absolute;top:0;left:0;width:100%;height:100%;background:#000;"
                        src="<%= streams[0].url %>">
                 </video>
@@ -270,6 +273,24 @@ if (qualitySelectEl) {
         invVideo.currentTime = t;
         invVideo.play();
     });
+}
+
+const INV_SERVERS = <%- JSON.stringify(servers.map(s => s.replace('https://', ''))) %>;
+measureInvidiousLatency(INV_SERVERS);
+
+const fastestServer = getFastestInvidiousServer();
+const currentParams = new URLSearchParams(window.location.search);
+if (!currentParams.has('server') && fastestServer) {
+    const serverSelectEl = document.getElementById('serverSelect');
+    if (serverSelectEl) {
+        const options = Array.from(serverSelectEl.options);
+        if (options.some(opt => opt.value === fastestServer)) {
+            const playlist = currentParams.get('playlist');
+            let url = `/gen/yt/invidious/<%= videoId %>?server=${encodeURIComponent(fastestServer)}`;
+            if (playlist) url += `&playlist=${encodeURIComponent(playlist)}`;
+            window.location.replace(url);
+        }
+    }
 }
 
 document.getElementById('applyServer').addEventListener('click', function() {

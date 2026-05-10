@@ -115,18 +115,27 @@ function initPlaylist(currentVideoId, mode) {
         }
     }
 
+    prefetchNextPlaylistVideo(mode, playlistItems, currentIndex);
     patchModeSwitchLinks();
 }
 
 function buildPlaylistUrl(videoId, mode) {
+    const urlParams = new URLSearchParams(window.location.search);
+    const fastest = urlParams.get('fastest');
+    let url;
     if (mode === 'normal') {
-        return `/gen/watch/${encodeURIComponent(videoId)}?playlist=fav`;
+        url = `/gen/watch/${encodeURIComponent(videoId)}?playlist=fav`;
     } else if (mode === 'nocookie') {
-        return `/gen/yt/nocookie/${encodeURIComponent(videoId)}?playlist=fav`;
+        url = `/gen/yt/nocookie/${encodeURIComponent(videoId)}?playlist=fav`;
     } else if (mode === 'invidious') {
-        return `/gen/yt/invidious/${encodeURIComponent(videoId)}?playlist=fav`;
+        url = `/gen/yt/invidious/${encodeURIComponent(videoId)}?playlist=fav`;
+    } else {
+        url = `/gen/watch/${encodeURIComponent(videoId)}?playlist=fav`;
     }
-    return `/gen/watch/${encodeURIComponent(videoId)}?playlist=fav`;
+    if (fastest) {
+        url += `&fastest=${encodeURIComponent(fastest)}`;
+    }
+    return url;
 }
 
 function escapeHtml(text) {
@@ -161,4 +170,46 @@ function patchModeSwitchLinks() {
             }
         }
     });
+}
+
+function measureInvidiousLatency(servers) {
+    if (!Array.isArray(servers) || servers.length === 0) return;
+    const measurements = servers.map(server => {
+        const start = performance.now();
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 3000);
+        const url = (server.startsWith('http') ? server : 'https://' + server) + '/api/v1/videos/dQw4w9WgXcQ';
+        return fetch(url, { mode: 'no-cors', signal: controller.signal })
+            .then(() => ({ server, time: performance.now() - start, ok: true }))
+            .catch(() => ({ server, time: Infinity, ok: false }))
+            .finally(() => clearTimeout(timeoutId));
+    });
+
+    Promise.all(measurements).then(results => {
+        const valid = results.filter(r => r.ok);
+        if (valid.length === 0) return;
+        valid.sort((a, b) => a.time - b.time);
+        const fastest = valid[0].server.replace(/^https?:\/\//, '');
+        localStorage.setItem('invidious_fastest_server', fastest);
+    });
+}
+
+function getFastestInvidiousServer() {
+    return localStorage.getItem('invidious_fastest_server');
+}
+
+function prefetchNextPlaylistVideo(mode, playlistItems, currentIndex) {
+    if (mode !== 'invidious' || !Array.isArray(playlistItems) || currentIndex >= playlistItems.length - 1) return;
+    const nextItem = playlistItems[currentIndex + 1];
+    if (!nextItem || !nextItem.videoId) return;
+    const nextVideoId = nextItem.videoId;
+    const href = `/gen/yt/invidious/${encodeURIComponent(nextVideoId)}?playlist=fav`;
+    const existing = document.querySelectorAll('link[rel="prefetch"]');
+    for (let i = 0; i < existing.length; i++) {
+        if (existing[i].getAttribute('href') === href) return;
+    }
+    const link = document.createElement('link');
+    link.rel = 'prefetch';
+    link.href = href;
+    document.head.appendChild(link);
 }
