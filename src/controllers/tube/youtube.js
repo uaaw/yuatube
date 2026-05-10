@@ -126,3 +126,5 @@ router.get('/invidious/:id', async (req, res) => {
 });
 
 module.exports = router;
+module.exports.getInvidiousVideoData = getInvidiousVideoData;
+module.exports.HOST_REGEX = HOST_REGEX;

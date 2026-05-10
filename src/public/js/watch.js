@@ -198,6 +198,19 @@ function getFastestInvidiousServer() {
     return localStorage.getItem('invidious_fastest_server');
 }
 
+function setupInvidiousProxyFallback(videoId, originalUrl) {
+    const video = document.getElementById('invVideo');
+    if (!video) return;
+    video.addEventListener('error', function onError() {
+        if (video.src && video.src.includes('/gen/proxy/invidious/') && originalUrl) {
+            console.warn('Invidious proxy failed, falling back to direct URL');
+            video.src = originalUrl;
+            video.load();
+            video.play().catch(function() {});
+        }
+    }, { once: true });
+}
+
 function prefetchNextPlaylistVideo(mode, playlistItems, currentIndex) {
     if (mode !== 'invidious' || !Array.isArray(playlistItems) || currentIndex >= playlistItems.length - 1) return;
     const nextItem = playlistItems[currentIndex + 1];
