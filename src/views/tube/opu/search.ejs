@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><%= res.correctedQuery %> - 検索</title>
+    <title><%= (res && res.correctedQuery) || query %> - 検索</title>
     <link rel="stylesheet" href="/css/page.css">
     <script src="/js/tailwindcss.js"></script>
     <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
@@ -53,10 +53,11 @@
     </header>
   
    <div class="container mx-auto p-4">
-        <h2 class="text-xl font-bold mb-4">検索結果: <%= res.correctedQuery %></h2>
-        <p class="text-sm text-gray-500 mb-4"><%= res.results %>件のヒット</p>
+        <h2 class="text-xl font-bold mb-4">検索結果: <%= (res && res.correctedQuery) || query %></h2>
+        <p class="text-sm text-gray-500 mb-4"><%= (res && res.results) || 0 %>件のヒット</p>
         
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            <% if (res && res.items && res.items.length > 0) { %>
             <% res.items.forEach(video => { %>
                <% if (video.type === 'video') { %>
                 <div class="result-item w-auto bg-gray-800 p-4 rounded">
@@ -96,13 +97,20 @@
                 </div>
               <% } %>
             <% }); %>
+            <% } else { %>
+              <p class="text-gray-400 col-span-full text-center py-8">
+                <%= query ? "検索結果がありません" : "検索キーワードを入力してください" %>
+              </p>
+            <% } %>
         </div>
+      <% if (res && res.items && res.items.length > 0) { %>
       <div class="flex justify-center mt-10 mb-6">
     <a class="px-6 py-3 bg-blue-600 text-white text-lg font-semibold rounded-full shadow-md hover:bg-blue-700 transition"
        href="/gen/ss?q=<%= query %>&p=<%= page+1 %>">
       もっと読み込む
     </a>
 </div>
+      <% } %>
 
     </div>
 <script>

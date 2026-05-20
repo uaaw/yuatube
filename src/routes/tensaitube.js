@@ -15,11 +15,19 @@ router.get("/", (req, res) => {
 });
 
 router.get("/s", async (req, res) => {
-	let query = req.query.q;
-	let page = Number(req.query.p || 1);
+	const query = req.query.q;
+	const page = Number(req.query.p || 1);
     try {
-		res.render("tube/search.ejs", {
-			res: await serverYt.search(query, limit, page),
+		if (!query) {
+			return res.render("tube/search", {
+				res: { results: [] },
+				query: "",
+				page
+			});
+		}
+		const searchResults = await serverYt.search(query, limit, page);
+		res.render("tube/search", {
+			res: searchResults || { results: [] },
 			query: query,
 			page
 		});
@@ -37,11 +45,19 @@ router.get("/s", async (req, res) => {
 });
 
 router.get("/ss", async (req, res) => {
-	let query = req.query.q;
-	let page = Number(req.query.p || 3);
+	const query = req.query.q;
+	const page = Number(req.query.p || 3);
     try {
-		res.render("tube/opu/search.ejs", {
-			res: await ytsr(query, {limit, pages: page}),
+		if (!query) {
+			return res.render("tube/opu/search", {
+				res: { items: [], results: 0, correctedQuery: "" },
+				query: "",
+				page
+			});
+		}
+		const searchResults = await ytsr(query, {limit, pages: page});
+		res.render("tube/opu/search", {
+			res: searchResults || { items: [], results: 0, correctedQuery: "" },
 			query: query,
 			page
 		});
@@ -64,7 +80,7 @@ router.get("/c/:id", async (req, res) => {
       });
     }
     const { channel, recentVideos } = result;
-    res.render("tube/channel.ejs", { channel, recentVideos });
+    res.render("tube/channel", { channel, recentVideos });
   } catch (err) {
     console.error("Failed to fetch channel", req.params.id, err);
     res.status(500).render("error.ejs", {

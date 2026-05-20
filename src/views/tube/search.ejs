@@ -55,49 +55,57 @@
         <h2 class="text-xl font-bold mb-4" style="color:#fff;">検索結果: <%= query %></h2>
   
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-            <% res.results.forEach(video => { %>
-              <% if (video.type.endsWith("Video")) { %>
-                <div class="result-item w-auto h-auto bg-gray-800 p-4 rounded">
-                    <a href="/gen/watch/<%= video.id %>" class="thumbnail">
-                        <img loading="lazy" src="/gen/back/vi/<%= video.id %>/mqdefault.jpg" alt="<%= video.title.text %>" class="w-full h-auto rounded">
-                        <span class="video-duration"><%= video.duration.text %></span>
+            <% if (res && res.results && res.results.length > 0) { %>
+              <% res.results.forEach(video => { %>
+                <% if (video.type.endsWith("Video")) { %>
+                  <div class="result-item w-auto h-auto bg-gray-800 p-4 rounded">
+                      <a href="/gen/watch/<%= video.id %>" class="thumbnail">
+                          <img loading="lazy" src="/gen/back/vi/<%= video.id %>/mqdefault.jpg" alt="<%= video.title.text %>" class="w-full h-auto rounded">
+                          <span class="video-duration"><%= video.duration.text %></span>
+                      </a>
+                      <div class="mt-2 flex items-center">
+                          <a href="/gen/c/<%= video.author.id %>" class="flex items-center">
+                              <img src="/gen/back/yt3<%- (new URL(video.author.thumbnails[0].url)).pathname %>" alt="アイコン" class="w-8 h-8 rounded-full mr-2">
+                              <p class="text-sm text-gray-400"><%= video.author.name %></p>
+                          </a>
+                      </div>
+                      <p class="text-lg font-bold"><%= video.title.text %></p>
+                      <p class="text-xs text-gray-500"><%= video.view_count?.text || video.short_view_count?.text %> - <%= video.published?.text || "" %></p>
+                  </div>
+                <% } else if (video.type.endsWith("Playlist")) { %>
+                  <div class="result-item bg-gray-600 p-4 rounded">
+                    <a href="/gen/p/<%= video.id %>">
+                      <img src="/vi/<%= video?.endpoint?.payload?.videoId || video.first_videos[0]?.id %>/mqdefault.jpg" alt="<%= video.title.text %>" class="w-full h-auto rounded">
                     </a>
-                    <div class="mt-2 flex items-center">
-                        <a href="/gen/c/<%= video.author.id %>" class="flex items-center">
-                            <img src="/gen/back/yt3<%- (new URL(video.author.thumbnails[0].url)).pathname %>" alt="アイコン" class="w-8 h-8 rounded-full mr-2">
-                            <p class="text-sm text-gray-400"><%= video.author.name %></p>
-                        </a>
-                    </div>
-                    <p class="text-lg font-bold"><%= video.title.text %></p>
-                    <p class="text-xs text-gray-500"><%= video.view_count?.text || video.short_view_count?.text %> - <%= video.published?.text || "" %></p>
-                </div>
-              <% } else if (video.type.endsWith("Playlist")) { %>
-                <div class="result-item bg-gray-600 p-4 rounded">
-                  <a href="/gen/p/<%= video.id %>">
-                    <img src="/vi/<%= video?.endpoint?.payload?.videoId || video.first_videos[0]?.id %>/mqdefault.jpg" alt="<%= video.title.text %>" class="w-full h-auto rounded">
-                  </a>
-                    <div class="mt-2">
-                        <p class="text-sm text-gray-400"><a href="/gen/u/<%= video.author.id %>"><%= video.author.name %></a></p>
-                        <p class="text-lg font-bold">プレイリスト(<%= video.video_count?.text %>本以上の動画)</p>
-                    </div>
-                </div>
-              <% } else if (video.type.endsWith("Channel")) { %>
-                <div class="result-item bg-gray-600 p-4 rounded">
-                  <a href="/gen/c/<%= video.author.id %>">
-                    <img src="<%= video.author.thumbnails[0].url %>" alt="<%= video.author.name %>" class="w-full h-auto rounded">
-                  </a>
-                    <div class="mt-2">
-                        <p class="text-lg font-bold"><%= video.author.name %></p>
-                        <p class="text-sm text-gray-400"><%= video.description_snippet?.text %></p>
-                        <p class="text-xs text-gray-500"><%= video.subscriber_count?.text %> • <%= video.videos?.text || video.video_count?.text %></p>
-                    </div>
-                </div>
-              <% } %>
-            <% }); %>
+                      <div class="mt-2">
+                          <p class="text-sm text-gray-400"><a href="/gen/u/<%= video.author.id %>"><%= video.author.name %></a></p>
+                          <p class="text-lg font-bold">プレイリスト(<%= video.video_count?.text %>本以上の動画)</p>
+                      </div>
+                  </div>
+                <% } else if (video.type.endsWith("Channel")) { %>
+                  <div class="result-item bg-gray-600 p-4 rounded">
+                    <a href="/gen/c/<%= video.author.id %>">
+                      <img src="<%= video.author.thumbnails[0].url %>" alt="<%= video.author.name %>" class="w-full h-auto rounded">
+                    </a>
+                      <div class="mt-2">
+                          <p class="text-lg font-bold"><%= video.author.name %></p>
+                          <p class="text-sm text-gray-400"><%= video.description_snippet?.text %></p>
+                          <p class="text-xs text-gray-500"><%= video.subscriber_count?.text %> • <%= video.videos?.text || video.video_count?.text %></p>
+                      </div>
+                  </div>
+                <% } %>
+              <% }); %>
+            <% } else { %>
+              <p class="text-gray-400 col-span-full text-center py-8">
+                <%= query ? "検索結果がありません" : "検索キーワードを入力してください" %>
+              </p>
+            <% } %>
         </div>
+      <% if (res && res.results && res.results.length > 0) { %>
       <div style="display:flex;justify-content:center;margin-top:40px;margin-bottom:24px;">
     <a class="load-more-btn" href="/gen/ss?q=<%= query %>&p=<%= page+1 %>">もっと読み込む</a>
-</div>
+	</div>
+	  <% } %>
 
     </div>
   
