@@ -1,5 +1,6 @@
 "use strict";
 const express = require("express");
+const http = require("http");
 const path = require("path");
 const compression = require("compression");
 const bodyParser = require("body-parser");
@@ -7,6 +8,8 @@ const cookieParser = require("cookie-parser");
 const crypto = require("crypto");
 const serverYt = require("./server/youtube.js");
 const cors = require('cors');
+const { Server } = require('socket.io');
+const setupLudoSocket = require('./game/ludo/LudoSocket');
 
 // READMEにあるようにここにハッシュ値を設置してね
 //デフォルトはhello
@@ -93,7 +96,10 @@ async function initInnerTube() {
     const { Innertube } = await import("youtubei.js");
     client = await Innertube.create({ lang: "ja", location: "JP"});
     serverYt.setClient(client);
-    const listener = app.listen(process.env.PORT || 3000, () => {
+    const httpServer = http.createServer(app);
+    const io = new Server(httpServer, { cors: { origin: "*" } });
+    setupLudoSocket(io);
+    const listener = httpServer.listen(process.env.PORT || 3000, () => {
       console.log(process.pid, "Ready.", listener.address().port);
     });
   } catch (e) {

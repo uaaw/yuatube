@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ja">
 
 <head>
     <meta charset="UTF-8">
@@ -1398,6 +1398,53 @@
                 grid-template-columns: 1fr 1fr;
             }
         }
+
+        /* Online lobby styles */
+        #playerList .player-entry {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.6rem 0.75rem;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.05);
+            margin-bottom: 0.5rem;
+        }
+        #playerList .player-entry .player-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--accent);
+        }
+        #playerList .player-entry .player-name {
+            color: #fff;
+            font-size: 0.9rem;
+            flex: 1;
+        }
+        #playerList .player-entry .player-status {
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+        }
+        #onlineColorGrid .color-option {
+            padding: 1rem;
+            border-radius: 12px;
+            border: 3px solid transparent;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+            font-weight: 600;
+            font-size: 1rem;
+            transition: all 0.2s;
+            text-transform: capitalize;
+        }
+        #onlineColorGrid .color-option:hover { transform: scale(1.03); }
+        #onlineColorGrid .color-option.selected { border-color: #fff; box-shadow: 0 0 20px currentColor; }
+        #onlineColorGrid .color-option.disabled { opacity: 0.3; pointer-events: none; }
+        #onlineColorGrid .color-option.red { background: var(--red); color: #fff; }
+        #onlineColorGrid .color-option.green { background: var(--green); color: #fff; }
+        #onlineColorGrid .color-option.blue { background: var(--blue); color: #fff; }
+        #onlineColorGrid .color-option.yellow { background: var(--yellow); color: #000; }
     </style>
 
 <body>
@@ -1411,6 +1458,7 @@
                 <p>同じ端末で友達や家族と順番にプレイ</p>
                 <div class="player-options">
                     <button class="player-btn" data-players="2">2人</button>
+                    <button class="player-btn" data-players="3">3人</button>
                     <button class="player-btn" data-players="4">4人</button>
                 </div>
                 <button class="start-btn" data-mode="passplay"><i class="fas fa-play"></i> ゲーム開始</button>
@@ -1420,9 +1468,20 @@
                 <p>AIと対戦してスキルを試そう</p>
                 <div class="player-options">
                     <button class="player-btn" data-players="2">1対1</button>
+                    <button class="player-btn" data-players="3">1対2</button>
                     <button class="player-btn" data-players="4">1対3</button>
                 </div>
                 <button class="start-btn" data-mode="vscomputer"><i class="fas fa-play"></i> ゲーム開始</button>
+            </div>
+            <div class="mode-card" id="onlineCard">
+                <h3><i class="fas fa-globe icon"></i> オンライン対戦</h3>
+                <p>他のプレイヤーとオンラインで対戦</p>
+                <div class="player-options">
+                    <button class="player-btn" data-players="2">2人</button>
+                    <button class="player-btn" data-players="3">3人</button>
+                    <button class="player-btn" data-players="4">4人</button>
+                </div>
+                <button class="start-btn" data-mode="online"><i class="fas fa-play"></i> ルーム作成</button>
             </div>
         </div>
         <button class="help-btn" id="menuHelpBtn"><i class="fas fa-question-circle"></i> ヘルプ</button>
@@ -1647,8 +1706,60 @@
         </div>
     </div>
 
+    <!-- Online Lobby Modal -->
+    <div class="modal-overlay" id="onlineLobby">
+        <div class="modal-content" style="max-width: 480px;">
+            <div class="modal-header">
+                <h3><i class="fas fa-globe"></i> オンライン対戦</h3>
+                <button class="modal-close" id="closeLobby"><i class="fas fa-times"></i></button>
+            </div>
+            <div id="lobbyMain">
+                <div class="help-section">
+                    <h4><i class="fas fa-plus-circle"></i> ルーム作成</h4>
+                    <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 1rem;">新しいルームを作成して友達を招待</p>
+                    <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
+                        <input type="text" id="hostPlayerName" placeholder="あなたの名前" style="flex: 1; padding: 0.75rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.1); color: white; font-size: 0.9rem;">
+                    </div>
+                    <button class="start-btn active" id="createRoomBtn" style="width: 100%;"><i class="fas fa-plus"></i> ルームを作成</button>
+                </div>
+                <div class="help-section">
+                    <h4><i class="fas fa-sign-in-alt"></i> ルーム参加</h4>
+                    <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 1rem;">ルームIDを入力して参加</p>
+                    <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
+                        <input type="text" id="joinPlayerName" placeholder="あなたの名前" style="flex: 1; padding: 0.75rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.1); color: white; font-size: 0.9rem;">
+                        <input type="text" id="roomCodeInput" placeholder="ルームID" maxlength="6" style="width: 120px; padding: 0.75rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.1); color: white; font-size: 1.1rem; text-transform: uppercase; letter-spacing: 2px; text-align: center;">
+                    </div>
+                    <button class="start-btn active" id="joinRoomBtn" style="width: 100%;"><i class="fas fa-sign-in-alt"></i> 参加する</button>
+                </div>
+            </div>
+            <div id="lobbyWaiting" style="display: none;">
+                <div class="help-section">
+                    <h4><i class="fas fa-door-open"></i> ルーム: <span id="roomIdDisplay" style="color: var(--accent); letter-spacing: 3px;"></span></h4>
+                    <p style="color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 1rem;">このIDを友達に共有してください</p>
+                    <div id="playerList" style="margin-bottom: 1rem;"></div>
+                    <p id="waitingMessage" style="color: var(--text-secondary); font-size: 0.9rem; text-align: center;">他のプレイヤーを待っています...</p>
+                </div>
+                <button class="back-btn" id="leaveRoomBtn" style="width: 100%;"><i class="fas fa-arrow-left"></i> 退出</button>
+            </div>
+            <div id="lobbyColorSelect" style="display: none;">
+                <div class="help-section">
+                    <h4><i class="fas fa-palette"></i> 色を選んでください</h4>
+                    <div id="onlineColorGrid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.75rem; margin: 1rem 0;">
+                        <div class="color-option red" data-color="red"><i class="fas fa-chess-pawn"></i> レッド</div>
+                        <div class="color-option green" data-color="green"><i class="fas fa-chess-pawn"></i> グリーン</div>
+                        <div class="color-option blue" data-color="blue"><i class="fas fa-chess-pawn"></i> ブルー</div>
+                        <div class="color-option yellow" data-color="yellow"><i class="fas fa-chess-pawn"></i> イエロー</div>
+                    </div>
+                    <button class="confirm-colors" id="onlineConfirmColor" disabled style="width: 100%;">色を確定</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Confetti Canvas -->
     <canvas id="confettiCanvas"></canvas>
+
+    <script src="/socket.io/socket.io.js"></script>
 
     <script type="importmap">
     {
@@ -1704,8 +1815,9 @@
             yellow: [[8.2, 6.5], [8.2, 7.5], [7.8, 6.75], [7.8, 7.25]],
             blue: [[6.5, 8.2], [7.5, 8.2], [6.75, 7.8], [7.25, 7.8]]
         };
-        const SAFE_CELLS = [0, 8, 13, 21, 26, 34, 39, 47]; // Safe spots on main track
+        const SAFE_CELLS = [0, 8, 13, 21, 26, 34, 39, 47]; // Safe spots on main track (TRACK cell indices 0-51)
         const START_CELLS = { red: 0, green: 13, yellow: 26, blue: 39 };
+        const PLAYER_TRACK_OFFSET = { red: 0, green: 13, yellow: 26, blue: 39 };
 
         // ============ DOM ELEMENTS ============
         const menuOverlay = document.getElementById('menuOverlay');
@@ -2542,6 +2654,7 @@
         }
 
         // Rotate the board so 2-player games have both players' bases facing the camera
+        // For 3-player games, default orientation (no rotation) is used
         function rotateBoardForPlayers() {
             if (playerCount !== 2) return;
 
@@ -2659,12 +2772,22 @@
 
         rollBtn.addEventListener('click', () => {
             if (isRolling || !gameActive || rollBtn.disabled) return;
-            rollDice();
+            if (isOnlineMode && socket) {
+                socket.emit('rollDice');
+                rollBtn.disabled = true;
+            } else {
+                rollDice();
+            }
         });
 
         diceContainer.addEventListener('click', () => {
             if (isRolling || !gameActive || rollBtn.disabled || aiPlayers.includes(players[currentPlayerIndex])) return;
-            rollDice();
+            if (isOnlineMode && socket) {
+                socket.emit('rollDice');
+                rollBtn.disabled = true;
+            } else {
+                rollDice();
+            }
         });
 
         function getRandomInt(max) {
@@ -2839,8 +2962,13 @@
                 let obj = intersects[0].object;
                 while (obj.parent && !obj.userData.player) obj = obj.parent;
                 if (obj.userData.player === player) {
-                    clearHighlights();
-                    moveToken(player, obj.userData.index, lastRoll);
+                    if (isOnlineMode && socket) {
+                        socket.emit('moveToken', { tokenIndex: obj.userData.index });
+                        clearHighlights();
+                    } else {
+                        clearHighlights();
+                        moveToken(player, obj.userData.index, lastRoll);
+                    }
                 }
             }
         }
@@ -2863,8 +2991,9 @@
                 // Play sound for safe zone or home entry
                 if (newPos === 56) {
                     playSound('home');
-                } else if (newPos >= 0 && newPos < 51 && (SAFE_CELLS.includes(newPos) || newPos === START_CELLS[player])) {
-                    playSound('safe');
+                } else if (newPos >= 0 && newPos < 51) {
+                    const newTrackCell = (PLAYER_TRACK_OFFSET[player] + newPos) % 52;
+                    if (SAFE_CELLS.includes(newTrackCell)) playSound('safe');
                 }
 
                 updateScoreboard();
@@ -2926,7 +3055,7 @@
             });
 
             // Reposition based on count
-            const spacing = 12;
+            const spacing = 18;
             const count = tokensOnCell.length;
 
             tokensOnCell.forEach((token, i) => {
@@ -2946,8 +3075,12 @@
                     else if (i === 1) { offsetX = spacing * 0.7; offsetZ = -spacing * 0.4; }
                     else { offsetZ = spacing * 0.6; }
                 } else if (count >= 4) {
-                    offsetX = (i % 2 === 0 ? -1 : 1) * spacing * 0.5;
-                    offsetZ = (Math.floor(i / 2) % 2 === 0 ? -1 : 1) * spacing * 0.5;
+                    const cols = Math.ceil(Math.sqrt(count));
+                    const rows = Math.ceil(count / cols);
+                    const col = i % cols;
+                    const row = Math.floor(i / cols);
+                    offsetX = (col - (cols - 1) / 2) * spacing * 0.6;
+                    offsetZ = (row - (rows - 1) / 2) * spacing * 0.6;
                 }
 
                 mesh.position.x = basePos.x + offsetX;
@@ -3037,17 +3170,18 @@
 
         function checkCapture(player, tokenIndex, pos) {
             if (pos < 0 || pos >= 51) return; // Can't capture in final path or home
-            const safeIdx = SAFE_CELLS.includes(pos);
-            const startIdx = Object.values(START_CELLS).includes(pos);
-            if (safeIdx || startIdx) return; // Safe zone
-            const gridPos = PLAYER_PATHS[player][pos];
+            // Use track cell index (shared 0-51 reference frame) for robust comparison
+            const trackCell = (PLAYER_TRACK_OFFSET[player] + pos) % 52;
+            // Check safe zones using track cell indices
+            if (SAFE_CELLS.includes(trackCell)) return;
+            if (Object.values(START_CELLS).includes(trackCell)) return;
             players.forEach(other => {
                 if (other === player) return;
                 for (let i = 0; i < 4; i++) {
                     const oPos = tokens[other][i];
                     if (oPos >= 0 && oPos < 51) {
-                        const otherGridPos = PLAYER_PATHS[other][oPos];
-                        if (gridPos[0] === otherGridPos[0] && gridPos[1] === otherGridPos[1]) {
+                        const otherTrackCell = (PLAYER_TRACK_OFFSET[other] + oPos) % 52;
+                        if (trackCell === otherTrackCell) {
                             // Capture!
                             tokens[other][i] = -1;
                             const hp = HOME_POSITIONS[other][i];
@@ -3270,19 +3404,19 @@
                 if (newPos === 56) score += 100;
                 // Capture potential
                 if (newPos >= 0 && newPos < 51) {
-                    const gp = PLAYER_PATHS[player][newPos];
+                    const newTrackCell = (PLAYER_TRACK_OFFSET[player] + newPos) % 52;
                     players.forEach(other => {
                         if (other === player) return;
                         for (let j = 0; j < 4; j++) {
                             const oPos = tokens[other][j];
                             if (oPos >= 0 && oPos < 51) {
-                                const ogp = PLAYER_PATHS[other][oPos];
-                                if (gp[0] === ogp[0] && gp[1] === ogp[1]) score += 50;
+                                const oTrackCell = (PLAYER_TRACK_OFFSET[other] + oPos) % 52;
+                                if (newTrackCell === oTrackCell) score += 50;
                             }
                         }
                     });
                     // Landing on safe
-                    if (SAFE_CELLS.includes(newPos)) score += 10;
+                    if (SAFE_CELLS.includes(newTrackCell)) score += 10;
                 }
                 // Advance more = better
                 score += newPos;
@@ -3359,6 +3493,272 @@
             if (e.target === helpModal) {
                 helpModal.classList.remove('active');
             }
+        });
+
+        // ============ ONLINE MODE ============
+        let socket = null;
+        let onlineRoomId = null;
+        let onlinePlayers = [];
+        let isOnlineMode = false;
+        let onlineSelectedColor = null;
+        let onlineMaxPlayers = 2;
+
+        const onlineLobby = document.getElementById('onlineLobby');
+        const lobbyMain = document.getElementById('lobbyMain');
+        const lobbyWaiting = document.getElementById('lobbyWaiting');
+        const lobbyColorSelect = document.getElementById('lobbyColorSelect');
+        const roomIdDisplay = document.getElementById('roomIdDisplay');
+        const playerListEl = document.getElementById('playerList');
+        const waitingMessage = document.getElementById('waitingMessage');
+
+        document.getElementById('onlineCard').querySelector('.start-btn').addEventListener('click', (e) => {
+            e.stopPropagation();
+            const selectedBtn = document.getElementById('onlineCard').querySelector('.player-btn.selected');
+            if (!selectedBtn) return;
+            onlineMaxPlayers = parseInt(selectedBtn.dataset.players);
+            initSocket();
+            onlineLobby.classList.add('active');
+            lobbyMain.style.display = 'block';
+            lobbyWaiting.style.display = 'none';
+            lobbyColorSelect.style.display = 'none';
+        });
+
+        document.getElementById('closeLobby').addEventListener('click', () => {
+            onlineLobby.classList.remove('active');
+            if (socket) { socket.emit('leaveRoom'); socket.disconnect(); socket = null; }
+            resetOnlineState();
+        });
+
+        onlineLobby.addEventListener('click', (e) => {
+            if (e.target === onlineLobby) document.getElementById('closeLobby').click();
+        });
+
+        function initSocket() {
+            if (socket) return;
+            socket = io('/ludo');
+
+            socket.on('roomCreated', ({ roomId }) => {
+                onlineRoomId = roomId;
+                roomIdDisplay.textContent = roomId;
+            });
+
+            socket.on('roomJoined', ({ roomId, players: srvPlayers, maxPlayers }) => {
+                onlineRoomId = roomId;
+                onlinePlayers = srvPlayers;
+                onlineMaxPlayers = maxPlayers;
+                roomIdDisplay.textContent = roomId;
+                lobbyMain.style.display = 'none';
+                lobbyWaiting.style.display = 'block';
+                updatePlayerList();
+            });
+
+            socket.on('playerJoined', ({ id, name, color }) => {
+                onlinePlayers.push({ id, name, color });
+                updatePlayerList();
+            });
+
+            socket.on('playerLeft', ({ playerId, name }) => {
+                onlinePlayers = onlinePlayers.filter(p => p.id !== playerId);
+                updatePlayerList();
+            });
+
+            socket.on('startColorSelect', () => {
+                lobbyWaiting.style.display = 'none';
+                lobbyColorSelect.style.display = 'block';
+                onlineSelectedColor = null;
+                document.querySelectorAll('#onlineColorGrid .color-option').forEach(opt => {
+                    opt.classList.remove('selected', 'disabled');
+                });
+                document.getElementById('onlineConfirmColor').disabled = true;
+                document.getElementById('onlineConfirmColor').textContent = '色を確定';
+            });
+
+            socket.on('colorSelected', ({ playerId, color }) => {
+                const opt = document.querySelector(`#onlineColorGrid .color-option[data-color="${color}"]`);
+                if (opt) opt.classList.add('disabled');
+            });
+
+            socket.on('gameStart', (state) => {
+                onlineLobby.classList.remove('active');
+                menuOverlay.classList.add('hidden');
+                isOnlineMode = true;
+                players = state.players;
+                tokens = state.tokens;
+                currentPlayerIndex = state.currentPlayerIndex;
+                gameActive = true;
+                aiPlayers = [];
+                gameMode = 'online';
+                gameContainer.classList.add('active');
+                initThreeJS();
+                buildBoard();
+                adjustCameraForScreenSize();
+                createPlayerTokens();
+                players.forEach(p => {
+                    for (let i = 0; i < 4; i++) {
+                        const pos = tokens[p][i];
+                        if (pos >= 0) {
+                            const wp = getPositionForStep(p, i, pos);
+                            tokenMeshes[p][i].position.set(wp.x, tokenMeshes[p][i].position.y, wp.z);
+                        }
+                    }
+                });
+                updateUI();
+                updateScoreboard();
+                animate();
+                initAudio();
+                if (musicEnabled) startBackgroundMusic();
+            });
+
+            socket.on('diceRolled', ({ value, playerId, player, validMoves }) => {
+                lastRoll = value;
+                setMessage(`${value}が出た！`);
+                animateDiceVisual(value);
+                if (validMoves.length === 0) {
+                    setMessage(`${value}が出た。動かせるコマがない！`);
+                } else if (validMoves.length > 1 && playerId === socket.id) {
+                    setMessage(`${value}が出た。動かすコマを選んでください。`);
+                    highlightTokens(player, validMoves);
+                }
+            });
+
+            socket.on('tokenMoved', ({ player, tokenIndex, oldPos, newPos, captures }) => {
+                animateTokenMove(player, tokenIndex, oldPos, newPos, () => {
+                    if (captures && captures.length > 0) {
+                        captures.forEach(cap => {
+                            const hp = HOME_POSITIONS[cap.player][cap.tokenIndex];
+                            const wp = gridToWorld(hp[0], hp[1]);
+                            tokenMeshes[cap.player][cap.tokenIndex].position.set(wp.x, tokenMeshes[cap.player][cap.tokenIndex].position.y, wp.z);
+                        });
+                        playSound('capture');
+                    }
+                    tokens[player][tokenIndex] = newPos;
+                    if (oldPos >= 0) distributeTokensOnCell(oldPos);
+                    distributeTokensOnCell(newPos);
+                    if (newPos === 56) playSound('home');
+                    updateScoreboard();
+                });
+            });
+
+            socket.on('stateUpdate', (state) => {
+                tokens = state.tokens;
+                currentPlayerIndex = state.currentPlayerIndex;
+                gameActive = state.gameActive;
+                lastRoll = state.lastRoll;
+                // Re-position all 3D tokens to match server state
+                players.forEach(p => {
+                    for (let i = 0; i < 4; i++) {
+                        const pos = tokens[p][i];
+                        if (pos >= 0) {
+                            const wp = getPositionForStep(p, i, pos);
+                            tokenMeshes[p][i].position.set(wp.x, tokenMeshes[p][i].position.y, wp.z);
+                        } else {
+                            const hp = HOME_POSITIONS[p][i];
+                            const wp = gridToWorld(hp[0], hp[1]);
+                            tokenMeshes[p][i].position.set(wp.x, tokenMeshes[p][i].position.y, wp.z);
+                        }
+                    }
+                });
+                clearHighlights();
+                updateUI();
+                updateScoreboard();
+                setMessage('サイコロを振ってください！');
+            });
+
+            socket.on('gameOver', ({ winner, reason }) => {
+                gameActive = false;
+                if (winner) { showWinOnline(winner); }
+                else { setMessage(reason || 'ゲーム終了'); }
+            });
+
+            socket.on('error', ({ message }) => { setMessage(message); });
+
+            socket.on('disconnect', () => { setMessage('サーバーから切断されました'); });
+        }
+
+        function animateDiceVisual(value) {
+            const xTurn = 4 + Math.floor(Math.random() * 8);
+            const yTurn = 4 + Math.floor(Math.random() * 8);
+            diceAngleX += 90 * xTurn;
+            diceAngleY += 90 * yTurn;
+            diceEl.style.transform = `rotateX(${diceAngleX}deg) rotateY(${diceAngleY}deg)`;
+            diceEl.style.transitionDuration = '1000ms';
+        }
+
+        function showWinOnline(winner) {
+            playSound('win');
+            startConfetti();
+            const winTitle = document.getElementById('winTitle');
+            const winIcon = document.getElementById('winIcon');
+            const me = onlinePlayers.find(p => p.id === socket.id);
+            if (me && me.color === winner) {
+                winTitle.textContent = '勝利！';
+                winIcon.className = 'fas fa-crown';
+                winPlayer.textContent = 'あなたの勝ち！';
+            } else {
+                winTitle.textContent = '敗北！';
+                winIcon.className = 'fas fa-sad-tear';
+                winPlayer.textContent = `${winner}の勝ち！`;
+            }
+            winPlayer.style.color = `var(--${winner})`;
+            winModal.classList.add('active');
+        }
+
+        function updatePlayerList() {
+            playerListEl.innerHTML = '';
+            onlinePlayers.forEach(p => {
+                const entry = document.createElement('div');
+                entry.className = 'player-entry';
+                const dot = p.color ? `background: var(--${p.color})` : '';
+                entry.innerHTML = `<div class="player-dot" style="${dot}"></div><span class="player-name">${p.name || 'Player'}</span><span class="player-status">${p.id === socket.id ? '(あなた)' : ''}</span>`;
+                playerListEl.appendChild(entry);
+            });
+            waitingMessage.textContent = onlinePlayers.length < onlineMaxPlayers
+                ? `他のプレイヤーを待っています... (${onlinePlayers.length}/${onlineMaxPlayers})`
+                : '全員揃いました！色を選んでください。';
+        }
+
+        function resetOnlineState() {
+            onlineRoomId = null;
+            onlinePlayers = [];
+            isOnlineMode = false;
+            onlineSelectedColor = null;
+        }
+
+        document.getElementById('createRoomBtn').addEventListener('click', () => {
+            const name = document.getElementById('hostPlayerName').value.trim() || 'Player 1';
+            socket.emit('createRoom', { playerName: name, maxPlayers: onlineMaxPlayers });
+        });
+
+        document.getElementById('joinRoomBtn').addEventListener('click', () => {
+            const code = document.getElementById('roomCodeInput').value.trim().toUpperCase();
+            const name = document.getElementById('joinPlayerName').value.trim() || 'Player';
+            if (code.length !== 6) { setMessage('ルームIDは6文字です'); return; }
+            socket.emit('joinRoom', { roomId: code, playerName: name });
+        });
+
+        document.getElementById('leaveRoomBtn').addEventListener('click', () => {
+            if (socket) socket.emit('leaveRoom');
+            lobbyWaiting.style.display = 'none';
+            lobbyMain.style.display = 'block';
+            resetOnlineState();
+        });
+
+        document.querySelectorAll('#onlineColorGrid .color-option').forEach(opt => {
+            opt.addEventListener('click', () => {
+                if (opt.classList.contains('disabled')) return;
+                document.querySelectorAll('#onlineColorGrid .color-option').forEach(o => o.classList.remove('selected'));
+                opt.classList.add('selected');
+                onlineSelectedColor = opt.dataset.color;
+                document.getElementById('onlineConfirmColor').disabled = false;
+            });
+        });
+
+        document.getElementById('onlineConfirmColor').addEventListener('click', () => {
+            if (!onlineSelectedColor) return;
+            socket.emit('selectColor', { color: onlineSelectedColor });
+            socket.emit('ready');
+            document.getElementById('onlineConfirmColor').disabled = true;
+            document.getElementById('onlineConfirmColor').textContent = '準備完了！';
         });
     </script>
 </body>

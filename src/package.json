@@ -15,6 +15,7 @@
     "undici": "latest",
     "miniget": "^4.2.3",
     "cors": "^2.8.5",
+    "socket.io": "^4.7.4",
     "twitter-openapi-typescript": "latest"
   },
   "description": "yuatube",
