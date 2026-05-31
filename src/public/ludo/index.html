@@ -2725,7 +2725,7 @@
             currentPlayerEl.innerHTML = `<i class="fas ${isAI ? 'fa-robot' : 'fa-user'}"></i> <span>${displayName}</span>`;
             currentPlayerEl.style.color = colorVar;
             document.documentElement.style.setProperty('--current-color', colorVar);
-            rollBtn.disabled = isRolling || isAI;
+            rollBtn.disabled = isRolling || isAI || (isOnlineMode && players[currentPlayerIndex] !== onlinePlayers.find(p => p.id === socket?.id)?.color);
 
             // Activate base glow for current player
             startBaseGlow(player);
@@ -3501,6 +3501,7 @@
         let onlinePlayers = [];
         let isOnlineMode = false;
         let onlineSelectedColor = null;
+        let onlineColorConfirmed = false;
         let onlineMaxPlayers = 2;
 
         const onlineLobby = document.getElementById('onlineLobby');
@@ -3565,6 +3566,7 @@
             socket.on('startColorSelect', () => {
                 lobbyWaiting.style.display = 'none';
                 lobbyColorSelect.style.display = 'block';
+                if (onlineColorConfirmed) return; // Already confirmed, don't reset state
                 onlineSelectedColor = null;
                 document.querySelectorAll('#onlineColorGrid .color-option').forEach(opt => {
                     opt.classList.remove('selected', 'disabled');
@@ -3574,6 +3576,7 @@
             });
 
             socket.on('colorSelected', ({ playerId, color }) => {
+                if (playerId === socket.id) return; // Skip own selection; already handled by confirm click
                 const opt = document.querySelector(`#onlineColorGrid .color-option[data-color="${color}"]`);
                 if (opt) opt.classList.add('disabled');
             });
@@ -3676,12 +3679,23 @@
         }
 
         function animateDiceVisual(value) {
-            const xTurn = 4 + Math.floor(Math.random() * 8);
-            const yTurn = 4 + Math.floor(Math.random() * 8);
-            diceAngleX += 90 * xTurn;
-            diceAngleY += 90 * yTurn;
+            const targetAngles = {
+                1: { x: 0, y: 0 },
+                2: { x: 0, y: 270 },
+                3: { x: 270, y: 0 },
+                4: { x: 90, y: 0 },
+                5: { x: 0, y: 90 },
+                6: { x: 180, y: 0 }
+            };
+            const target = targetAngles[value] || targetAngles[1];
+            diceAngleX = target.x + 1080;
+            diceAngleY = target.y + 1080;
             diceEl.style.transform = `rotateX(${diceAngleX}deg) rotateY(${diceAngleY}deg)`;
-            diceEl.style.transitionDuration = '1000ms';
+            diceEl.style.transitionDuration = '1200ms';
+            setTimeout(() => {
+                diceAngleX = target.x;
+                diceAngleY = target.y;
+            }, 1300);
         }
 
         function showWinOnline(winner) {
@@ -3722,6 +3736,7 @@
             onlinePlayers = [];
             isOnlineMode = false;
             onlineSelectedColor = null;
+            onlineColorConfirmed = false;
         }
 
         document.getElementById('createRoomBtn').addEventListener('click', () => {
@@ -3754,9 +3769,10 @@
         });
 
         document.getElementById('onlineConfirmColor').addEventListener('click', () => {
-            if (!onlineSelectedColor) return;
+            if (!onlineSelectedColor || onlineColorConfirmed) return;
             socket.emit('selectColor', { color: onlineSelectedColor });
             socket.emit('ready');
+            onlineColorConfirmed = true;
             document.getElementById('onlineConfirmColor').disabled = true;
             document.getElementById('onlineConfirmColor').textContent = '準備完了！';
         });
