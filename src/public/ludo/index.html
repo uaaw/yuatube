@@ -3584,6 +3584,7 @@
             socket.on('gameStart', (state) => {
                 onlineLobby.classList.remove('active');
                 menuOverlay.classList.add('hidden');
+                onlineColorConfirmed = false;
                 isOnlineMode = true;
                 players = state.players;
                 tokens = state.tokens;
