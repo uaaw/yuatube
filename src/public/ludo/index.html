@@ -2725,7 +2725,7 @@
             currentPlayerEl.innerHTML = `<i class="fas ${isAI ? 'fa-robot' : 'fa-user'}"></i> <span>${displayName}</span>`;
             currentPlayerEl.style.color = colorVar;
             document.documentElement.style.setProperty('--current-color', colorVar);
-            rollBtn.disabled = isRolling || isAI || (isOnlineMode && players[currentPlayerIndex] !== onlinePlayers.find(p => p.id === socket?.id)?.color);
+            rollBtn.disabled = isRolling || isAI || (isOnlineMode && players[currentPlayerIndex] !== onlineSelectedColor);
 
             // Activate base glow for current player
             startBaseGlow(player);
