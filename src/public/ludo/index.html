@@ -1859,7 +1859,7 @@
                 if (!selectedBtn) return;
                 gameMode = mode;
                 playerCount = parseInt(selectedBtn.dataset.players);
-                startColorSelection();
+                if (mode !== 'online') startColorSelection();
             });
         });
 
