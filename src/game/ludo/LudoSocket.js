@@ -55,6 +55,34 @@ function setupLudoSocket(io) {
             }
         });
 
+        socket.on('reconnectRoom', ({ roomId, playerName }) => {
+            // Try roomId first, fall back to player name
+            let room = roomId ? roomManager.rooms.get(roomId) : null;
+            if (!room) room = roomManager.getRoomByPlayerName(playerName);
+            if (!room) {
+                socket.emit('error', { message: '再接続できるゲームがありません' });
+                return;
+            }
+            const disconnectedPlayer = room.players.find(p => p.name === playerName && p.disconnected);
+            if (!disconnectedPlayer) {
+                socket.emit('error', { message: '再接続できるゲームがありません' });
+                return;
+            }
+            const oldSocketId = disconnectedPlayer.id;
+            roomManager.reconnectPlayer(oldSocketId, socket.id);
+            socket.join(room.id);
+            socket.emit('roomJoined', {
+                roomId: room.id,
+                players: room.players.map(p => ({ id: p.id, name: p.name, color: p.color, disconnected: p.disconnected })),
+                maxPlayers: room.maxPlayers,
+                game: room.game ? room.game.getState() : null
+            });
+            socket.to(room.id).emit('playerReconnected', {
+                playerId: socket.id,
+                name: playerName
+            });
+        });
+
         socket.on('selectColor', ({ color }) => {
             const result = roomManager.selectColor(socket.id, color);
             if (result.error) {
@@ -81,6 +109,12 @@ function setupLudoSocket(io) {
 
             const game = room.game;
             const currentColor = game.getCurrentPlayer();
+            const currentPlayerObj = room.players.find(p => p.id === game.playerIds[currentColor]);
+
+            if (currentPlayerObj && currentPlayerObj.disconnected) {
+                advanceTurn(room, game, ludo);
+                return;
+            }
 
             if (game.playerIds[currentColor] !== socket.id) {
                 socket.emit('error', { message: 'あなたのターンではありません' });
@@ -101,8 +135,7 @@ function setupLudoSocket(io) {
 
             if (validMoves.length === 0) {
                 setTimeout(() => {
-                    game.nextTurn();
-                    ludo.to(room.id).emit('stateUpdate', game.getState());
+                    advanceTurn(room, game, ludo);
                 }, 1500);
             } else if (validMoves.length === 1) {
                 setTimeout(() => {
@@ -142,6 +175,12 @@ function setupLudoSocket(io) {
 
             const game = room.game;
             const currentColor = game.getCurrentPlayer();
+            const currentPlayerObj = room.players.find(p => p.id === game.playerIds[currentColor]);
+
+            if (currentPlayerObj && currentPlayerObj.disconnected) {
+                advanceTurn(room, game, ludo);
+                return;
+            }
 
             if (game.playerIds[currentColor] !== socket.id) {
                 socket.emit('error', { message: 'あなたのターンではありません' });
@@ -178,6 +217,21 @@ function setupLudoSocket(io) {
     });
 }
 
+function advanceTurn(room, game, ludo) {
+    game.nextTurn();
+    const maxAttempts = room.players.length;
+    let attempts = 0;
+    while (attempts < maxAttempts) {
+        const currentColor = game.getCurrentPlayer();
+        const socketId = game.playerIds[currentColor];
+        const player = room.players.find(p => p.id === socketId);
+        if (!player || !player.disconnected) break;
+        game.nextTurn();
+        attempts++;
+    }
+    ludo.to(room.id).emit('stateUpdate', game.getState());
+}
+
 function handlePostMove(ludo, room, game, currentColor, diceValue, result) {
     if (result.won) {
         game.gameActive = false;
@@ -187,29 +241,59 @@ function handlePostMove(ludo, room, game, currentColor, diceValue, result) {
     } else if (diceValue === 6) {
         ludo.to(room.id).emit('stateUpdate', game.getState());
     } else {
-        game.nextTurn();
-        ludo.to(room.id).emit('stateUpdate', game.getState());
+        advanceTurn(room, game, ludo);
     }
 }
 
 function handlePlayerLeave(socket, roomManager, ludo) {
-    const result = roomManager.leaveRoom(socket.id);
-    if (!result) return;
+    const room = roomManager.getRoomBySocketId(socket.id);
+    if (!room) return;
 
-    socket.leave(result.room.id);
+    const player = room.players.find(p => p.id === socket.id);
+    if (!player) return;
 
-    if (result.destroyed) return;
+    if (room.status === 'playing' && room.game) {
+        player.disconnected = true;
 
-    if (result.room.status === 'playing' && result.room.game) {
-        result.room.game.gameActive = false;
-        result.room.status = 'finished';
-        ludo.to(result.room.id).emit('gameOver', { winner: null, reason: 'プレイヤーが切断しました' });
+        socket.leave(room.id);
+
+        ludo.to(room.id).emit('playerDisconnected', {
+            playerId: socket.id,
+            name: player.name
+        });
+
+        const connectedPlayers = room.players.filter(p => !p.disconnected);
+        if (connectedPlayers.length === 1) {
+            const winnerColor = Object.keys(room.game.playerIds).find(
+                color => room.game.playerIds[color] === connectedPlayers[0].id
+            );
+            room.game.gameActive = false;
+            room.game.winner = winnerColor;
+            room.status = 'finished';
+            ludo.to(room.id).emit('gameOver', {
+                winner: winnerColor,
+                reason: '他のプレイヤーが切断しました'
+            });
+        } else if (room.game.playerIds[room.game.getCurrentPlayer()] === socket.id) {
+            advanceTurn(room, room.game, ludo);
+        }
+    } else {
+        const result = roomManager.leaveRoom(socket.id);
+        if (!result) return;
+
+        socket.leave(result.room.id);
+
+        if (result.destroyed) return;
+
+        if (result.room.hostId === socket.id && result.room.players.length > 0) {
+            result.room.hostId = result.room.players[0].id;
+        }
+
+        ludo.to(result.room.id).emit('playerLeft', {
+            playerId: socket.id,
+            name: result.playerName
+        });
     }
-
-    ludo.to(result.room.id).emit('playerLeft', {
-        playerId: socket.id,
-        name: result.playerName
-    });
 }
 
 module.exports = setupLudoSocket;

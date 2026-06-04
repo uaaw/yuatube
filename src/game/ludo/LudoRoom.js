@@ -6,11 +6,10 @@ class LudoRoom {
     }
 
     generateRoomId() {
-        const chars = '23456789ABCDEFGHJKMNPQRSTUVWXYZ';
-        let id = '';
-        for (let i = 0; i < 6; i++) {
-            id += chars[Math.floor(Math.random() * chars.length)];
-        }
+        let id;
+        do {
+            id = String(Math.floor(100000 + Math.random() * 900000));
+        } while (this.rooms.has(id));
         return id;
     }
 
@@ -40,7 +39,8 @@ class LudoRoom {
             id: socketId,
             name: playerName || 'Player',
             color: null,
-            ready: false
+            ready: false,
+            disconnected: false
         });
         return { room };
     }
@@ -94,6 +94,43 @@ class LudoRoom {
     isAllReady(room) {
         return room.players.length === room.maxPlayers &&
                room.players.every(p => p.ready && p.color);
+    }
+
+    reconnectPlayer(oldSocketId, newSocketId) {
+        for (const [, room] of this.rooms) {
+            const player = room.players.find(p => p.id === oldSocketId && p.disconnected);
+            if (!player) continue;
+            if (room.game && room.game.playerIds) {
+                for (const [color, sid] of Object.entries(room.game.playerIds)) {
+                    if (sid === oldSocketId) {
+                        room.game.playerIds[color] = newSocketId;
+                    }
+                }
+            }
+            player.id = newSocketId;
+            player.disconnected = false;
+            return room;
+        }
+        return null;
+    }
+
+    getDisconnectedPlayers() {
+        const disconnected = [];
+        for (const [, room] of this.rooms) {
+            for (const player of room.players) {
+                if (player.disconnected) {
+                    disconnected.push({ player, room });
+                }
+            }
+        }
+        return disconnected;
+    }
+
+    getRoomByPlayerName(name) {
+        for (const [, room] of this.rooms) {
+            if (room.players.find(p => p.name === name)) return room;
+        }
+        return null;
     }
 
     getRoomBySocketId(socketId) {

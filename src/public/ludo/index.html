@@ -3434,8 +3434,24 @@
         document.getElementById('rulesBtn').addEventListener('click', () => rulesModal.classList.add('active'));
         document.getElementById('closeRules').addEventListener('click', () => rulesModal.classList.remove('active'));
         rulesModal.addEventListener('click', e => { if (e.target === rulesModal) rulesModal.classList.remove('active'); });
-        document.getElementById('newGameBtn').addEventListener('click', () => location.reload());
-        document.getElementById('playAgainBtn').addEventListener('click', () => location.reload());
+        document.getElementById('newGameBtn').addEventListener('click', () => {
+            if (confirm('新しいゲームを開始しますか？現在のゲームは終了します。')) {
+                if (isOnlineMode && socket) {
+                    socket.emit('leaveRoom');
+                    socket.disconnect();
+                    socket = null;
+                }
+                location.reload();
+            }
+        });
+        document.getElementById('playAgainBtn').addEventListener('click', () => {
+            if (isOnlineMode && socket) {
+                socket.emit('leaveRoom');
+                socket.disconnect();
+                socket = null;
+            }
+            location.reload();
+        });
 
         // ============ BOARD CONTROLS ============
         let boardLocked = false;
@@ -3501,6 +3517,7 @@
         let onlinePlayers = [];
         let isOnlineMode = false;
         let onlineSelectedColor = null;
+        let myPlayerName = null;
         let onlineColorConfirmed = false;
         let onlineMaxPlayers = 2;
 
@@ -3543,14 +3560,47 @@
                 roomIdDisplay.textContent = roomId;
             });
 
-            socket.on('roomJoined', ({ roomId, players: srvPlayers, maxPlayers }) => {
+            socket.on('roomJoined', ({ roomId, players: srvPlayers, maxPlayers, game: gameState }) => {
                 onlineRoomId = roomId;
                 onlinePlayers = srvPlayers;
                 onlineMaxPlayers = maxPlayers;
                 roomIdDisplay.textContent = roomId;
-                lobbyMain.style.display = 'none';
-                lobbyWaiting.style.display = 'block';
-                updatePlayerList();
+
+                if (gameState) {
+                    // Reconnection - restore game state
+                    onlineLobby.classList.remove('active');
+                    menuOverlay.classList.add('hidden');
+                    isOnlineMode = true;
+                    players = gameState.players;
+                    tokens = gameState.tokens;
+                    currentPlayerIndex = gameState.currentPlayerIndex;
+                    gameActive = gameState.gameActive;
+                    aiPlayers = [];
+                    gameMode = 'online';
+                    gameContainer.classList.add('active');
+                    initThreeJS();
+                    buildBoard();
+                    adjustCameraForScreenSize();
+                    createPlayerTokens();
+                    players.forEach(p => {
+                        for (let i = 0; i < 4; i++) {
+                            const pos = tokens[p][i];
+                            if (pos >= 0) {
+                                const wp = getPositionForStep(p, i, pos);
+                                tokenMeshes[p][i].position.set(wp.x, tokenMeshes[p][i].position.y, wp.z);
+                            }
+                        }
+                    });
+                    updateUI();
+                    updateScoreboard();
+                    animate();
+                    setMessage('再接続しました！');
+                } else {
+                    // Normal join - show lobby
+                    lobbyMain.style.display = 'none';
+                    lobbyWaiting.style.display = 'block';
+                    updatePlayerList();
+                }
             });
 
             socket.on('playerJoined', ({ id, name, color }) => {
@@ -3676,7 +3726,39 @@
 
             socket.on('error', ({ message }) => { setMessage(message); });
 
-            socket.on('disconnect', () => { setMessage('サーバーから切断されました'); });
+            socket.on('disconnect', () => {
+                setMessage('サーバーから切断されました。再接続を試みています...');
+                // Auto-reconnect attempt
+                setTimeout(() => {
+                    if (socket && !socket.connected) {
+                        socket.connect();
+                    }
+                }, 2000);
+            });
+
+            socket.io.on('reconnect', () => {
+                setMessage('再接続しました。ルームに再参加中...');
+                if (onlineRoomId) {
+                    const name = myPlayerName || 'Player';
+                    socket.emit('reconnectRoom', { roomId: onlineRoomId, playerName: name });
+                }
+            });
+
+            socket.on('playerReconnected', ({ playerId, name }) => {
+                setMessage(`${name}が再接続しました`);
+                // Update onlinePlayers list
+                const idx = onlinePlayers.findIndex(p => p.name === name && p.disconnected);
+                if (idx !== -1) {
+                    onlinePlayers[idx].id = playerId;
+                    onlinePlayers[idx].disconnected = false;
+                }
+            });
+
+            socket.on('playerDisconnected', ({ playerId, name }) => {
+                setMessage(`${name}が切断しました。再接続を待っています...`);
+                const player = onlinePlayers.find(p => p.id === playerId);
+                if (player) player.disconnected = true;
+            });
         }
 
         function animateDiceVisual(value) {
@@ -3738,11 +3820,13 @@
             isOnlineMode = false;
             onlineSelectedColor = null;
             onlineColorConfirmed = false;
+            myPlayerName = null;
         }
 
         document.getElementById('createRoomBtn').addEventListener('click', () => {
             const name = document.getElementById('hostPlayerName').value.trim() || 'Player 1';
             socket.emit('createRoom', { playerName: name, maxPlayers: onlineMaxPlayers });
+            myPlayerName = name;
         });
 
         document.getElementById('joinRoomBtn').addEventListener('click', () => {
@@ -3750,6 +3834,7 @@
             const name = document.getElementById('joinPlayerName').value.trim() || 'Player';
             if (code.length !== 6) { setMessage('ルームIDは6文字です'); return; }
             socket.emit('joinRoom', { roomId: code, playerName: name });
+            myPlayerName = name;
         });
 
         document.getElementById('leaveRoomBtn').addEventListener('click', () => {
