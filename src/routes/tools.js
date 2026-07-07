@@ -12,5 +12,6 @@ router.get("/tool/:id", (req, res) => {
 
 router.use("/inv", require("../controllers/tool/src/inv"));
 router.use("/html", require("../controllers/tool/src/get"));
+router.use("/ytdl", require("../controllers/tool/src/youtubedl"));
 
 module.exports = router;

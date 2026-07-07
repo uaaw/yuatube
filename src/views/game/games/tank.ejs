@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tank</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: #000; color: #fff; font-family: sans-serif; height: 100vh; display: flex; flex-direction: column; }
+header { background: #1a1a1a; padding: 8px 16px; display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+header a { color: #aaa; text-decoration: none; font-size: 0.9rem; }
+header a:hover { color: #fff; }
+header h1 { font-size: 1rem; font-weight: 600; }
+iframe { flex: 1; border: none; width: 100%; }
+</style>
+</head>
+<body>
+<header>
+  <a href="/game">← ゲーム一覧</a>
+  <h1>Tank Ace</h1>
+</header>
+<iframe src="/tank/index.html" allowfullscreen></iframe>
+</body>
+</html>

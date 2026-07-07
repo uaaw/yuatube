@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Web Proxy</title>
+    <script src="/js/tailwindcss.js"></script>
+    <link rel="stylesheet" href="/css/page.css">
+    <style>
+        * { box-sizing: border-box; }
+        body { margin: 0; height: 100vh; display: flex; flex-direction: column; background: #111; }
+        .proxy-bar {
+            background: #1a1a2e;
+            padding: 8px 12px;
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            border-bottom: 1px solid #333;
+            flex-shrink: 0;
+        }
+        .proxy-bar input {
+            flex: 1;
+            background: #2a2a3e;
+            border: 1px solid #444;
+            color: #fff;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            outline: none;
+        }
+        .proxy-bar input:focus { border-color: #60a5fa; }
+        .proxy-bar button {
+            background: #3b82f6;
+            color: #fff;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+        .proxy-bar button:hover { background: #2563eb; }
+        .proxy-bar button:disabled { background: #555; cursor: not-allowed; }
+        .proxy-bar .back-btn {
+            background: #374151;
+            padding: 8px 12px;
+        }
+        .proxy-bar .back-btn:hover { background: #4b5563; }
+        #proxyFrame {
+            flex: 1;
+            border: none;
+            width: 100%;
+            background: #fff;
+        }
+        .status {
+            color: #9ca3af;
+            font-size: 0.75rem;
+            padding: 4px 12px;
+            background: #111;
+            text-align: center;
+        }
+        .status.error { color: #ef4444; }
+        .status.loading { color: #fbbf24; }
+    </style>
+</head>
+<body>
+    <header class="bg-gray-800 p-3 flex items-center gap-3 border-b border-gray-700">
+        <a href="/sonota" class="text-gray-400 hover:text-white text-sm">← sonota</a>
+        <h1 class="text-lg font-bold text-white">Web Proxy</h1>
+    </header>
+    <div class="proxy-bar">
+        <button class="back-btn" id="backBtn">←</button>
+        <button class="back-btn" id="fwdBtn">→</button>
+        <input type="text" id="urlInput" placeholder="URLを入力 (例: https://example.com)" autocomplete="off">
+        <button id="goBtn">接続</button>
+    </div>
+    <div class="status" id="status">初期化中...</div>
+    <iframe id="proxyFrame" src="about:blank"></iframe>
+
+    <script src="/uv/uv.bundle.js"></script>
+    <script src="/uv/uv.config.js"></script>
+    <script type="module">
+        import { BareMuxConnection } from "/baremux/index.mjs";
+
+        const urlInput = document.getElementById('urlInput');
+        const proxyFrame = document.getElementById('proxyFrame');
+        const status = document.getElementById('status');
+        const goBtn = document.getElementById('goBtn');
+        const backBtn = document.getElementById('backBtn');
+        const fwdBtn = document.getElementById('fwdBtn');
+        const navHistory = [];
+        let histIdx = -1;
+        let ready = false;
+
+        function withTimeout(promise, ms, message) {
+            return Promise.race([
+                promise,
+                new Promise((_, reject) =>
+                    setTimeout(() => reject(new Error(message)), ms)
+                ),
+            ]);
+        }
+
+        function waitForSwActivated(reg, timeoutMs = 15000) {
+            return new Promise((resolve, reject) => {
+                const worker = reg.installing || reg.waiting || reg.active;
+                if (!worker) {
+                    reject(new Error('No service worker instance'));
+                    return;
+                }
+                if (worker.state === 'activated') {
+                    resolve(reg);
+                    return;
+                }
+                const timer = setTimeout(() => {
+                    worker.removeEventListener('statechange', onChange);
+                    reject(new Error('Service Worker activation timeout'));
+                }, timeoutMs);
+                function onChange() {
+                    if (worker.state === 'activated') {
+                        clearTimeout(timer);
+                        worker.removeEventListener('statechange', onChange);
+                        resolve(reg);
+                    }
+                }
+                worker.addEventListener('statechange', onChange);
+            });
+        }
+
+        // 1. Initialize bare-mux transport
+        try {
+            status.textContent = 'Transport接続中...';
+            status.className = 'status loading';
+            const connection = new BareMuxConnection("/baremux/worker.js");
+            const wispUrl = (location.protocol === 'https:' ? 'wss' : 'ws') + '://' + location.host + '/wisp/';
+            await withTimeout(
+                connection.setTransport('/epoxy/index.mjs', [{ wisp: wispUrl }]),
+                15000,
+                'Transport timeout'
+            );
+            console.log('[UV] Transport initialized');
+        } catch (e) {
+            console.error('[UV] Transport error:', e);
+            status.textContent = 'Transport初期化失敗: ' + e.message;
+            status.className = 'status error';
+        }
+
+        // 2. Register Service Worker
+        try {
+            if ('serviceWorker' in navigator) {
+                status.textContent = 'Service Worker登録中...';
+                status.className = 'status loading';
+                const reg = await navigator.serviceWorker.register('/uv/sw.js', { scope: '/uv/service/' });
+                await waitForSwActivated(reg, 15000);
+                console.log('[UV] SW registered and active:', reg.scope);
+            }
+        } catch (e) {
+            console.error('[UV] SW error:', e);
+            status.textContent = 'Service Worker登録失敗: ' + e.message;
+            status.className = 'status error';
+        }
+
+        ready = true;
+        status.textContent = 'URLを入力して「接続」を押してください';
+        status.className = 'status';
+
+        // 3. URL encoding
+        function encodeUrl(url) {
+            return Ultraviolet.codec.xor.encode(url);
+        }
+
+        // 4. Navigation
+        function goToUrl(url) {
+            if (!url) url = urlInput.value.trim();
+            if (!url) return;
+
+            if (!/^https?:\/\//i.test(url)) url = 'https://' + url;
+
+            try { new URL(url); } catch {
+                status.textContent = '無効なURLです';
+                status.className = 'status error';
+                return;
+            }
+
+            let encoded;
+            try {
+                encoded = encodeUrl(url);
+            } catch (e) {
+                status.textContent = 'URLエンコード失敗: ' + e.message;
+                status.className = 'status error';
+                return;
+            }
+            const proxyUrl = '/uv/service/' + encoded;
+
+            status.textContent = '読み込み中: ' + url;
+            status.className = 'status loading';
+            proxyFrame.src = proxyUrl;
+            urlInput.value = url;
+
+            // Track history
+            if (histIdx < navHistory.length - 1) navHistory.splice(histIdx + 1);
+            navHistory.push(url);
+            histIdx = navHistory.length - 1;
+        }
+
+        // 5. Event listeners (all inside module scope)
+        goBtn.addEventListener('click', () => goToUrl());
+
+        urlInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') goToUrl();
+        });
+
+        backBtn.addEventListener('click', () => {
+            if (histIdx > 0) {
+                histIdx--;
+                goToUrl(navHistory[histIdx]);
+            }
+        });
+
+        fwdBtn.addEventListener('click', () => {
+            if (histIdx < navHistory.length - 1) {
+                histIdx++;
+                goToUrl(navHistory[histIdx]);
+            }
+        });
+
+        proxyFrame.addEventListener('load', () => {
+            if (proxyFrame.src && proxyFrame.src !== 'about:blank') {
+                status.textContent = urlInput.value;
+                status.className = 'status';
+            }
+        });
+    </script>
+</body>
+</html>

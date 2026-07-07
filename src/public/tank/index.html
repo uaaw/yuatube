@@ -1,0 +1,29 @@
+<html>
+    <head>
+        <title>Tank Ace</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+        <link rel="stylesheet" href="css/style.css"/>
+        <link rel="stylesheet" href="css/bootstrap.min.css"/>
+        <link rel="stylesheet" href="css/bootstrap-theme.min.css"/>
+        <style>
+            canvas { touch-action: none; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+        </style>
+        <script src="/socket.io/socket.io.js"></script>
+        <script src="js/app.js"></script>
+    </head>
+    <body class="dark-background">
+        <!-- tabindex attribute is necessary for canvas to receive key input -->
+        <canvas id="game_canvas" tabindex="1"></canvas>
+        <div id="leaderboard"></div>
+        <div id="boost">
+            <div class="progress">
+                <div id="boost-bar" class="progress-bar progress-bar-striped progress-bar-success active" role="progressbar" aria-valuenow="40" aria-valuemin="0" aria-valuemax="100"></div>
+            </div>
+        </div>
+        <div id="fireBtn" style="position:fixed; bottom:30px; right:30px; width:70px; height:70px; background:rgba(255,0,0,0.6); border:3px solid rgba(255,255,255,0.8); border-radius:50%; display:none; align-items:center; justify-content:center; color:white; font-size:1.2rem; font-weight:bold; z-index:999; -webkit-tap-highlight-color:transparent;">発射</div>
+        <div id="joystickBase" style="position:fixed; bottom:50px; left:50px; width:100px; height:100px; background:rgba(255,255,255,0.15); border:2px solid rgba(255,255,255,0.3); border-radius:50%; z-index:1000; touch-action:none; display:none;">
+            <div id="joystickThumb" style="position:absolute; top:35px; left:35px; width:30px; height:30px; background:rgba(255,255,255,0.5); border-radius:50%;"></div>
+        </div>
+        <img id='background_image' src="img/background-v2.png" style="display: none;" />
+    </body>
+</html>

@@ -31,9 +31,44 @@ class LudoRoom {
     joinRoom(roomId, socketId, playerName) {
         const room = this.rooms.get(roomId);
         if (!room) return { error: 'ルームが見つかりません' };
+        if (room.players.find(p => p.id === socketId)) return { error: 'すでに参加しています' };
+
+        if (room.status === 'playing') {
+            // Mid-game join allowed if room has space
+            if (room.players.length >= room.maxPlayers) {
+                // Check for disconnected player to replace
+                const disconnected = room.players.find(p => p.disconnected);
+                if (!disconnected) return { error: 'ルームが満員です' };
+                // Replace disconnected player
+                const oldSocketId = disconnected.id;
+                disconnected.id = socketId;
+                disconnected.name = playerName || disconnected.name;
+                disconnected.disconnected = false;
+                // Update game playerIds
+                if (room.game && room.game.playerIds) {
+                    for (const [color, sid] of Object.entries(room.game.playerIds)) {
+                        if (sid === oldSocketId) {
+                            room.game.playerIds[color] = socketId;
+                        }
+                    }
+                }
+                return { room, replaced: true, replacedPlayer: disconnected };
+            }
+            // Room has space - add as new player
+            const availableColors = ['red', 'green', 'blue', 'yellow'].filter(c => !room.players.some(p => p.color === c));
+            if (availableColors.length === 0) return { error: '利用可能な色がありません' };
+            room.players.push({
+                id: socketId,
+                name: playerName || 'Player',
+                color: availableColors[0],
+                ready: true,
+                disconnected: false
+            });
+            return { room, midGameJoin: true };
+        }
+
         if (room.status !== 'waiting') return { error: 'ゲームが進行中です' };
         if (room.players.length >= room.maxPlayers) return { error: 'ルームが満員です' };
-        if (room.players.find(p => p.id === socketId)) return { error: 'すでに参加しています' };
 
         room.players.push({
             id: socketId,
@@ -43,6 +78,14 @@ class LudoRoom {
             disconnected: false
         });
         return { room };
+    }
+
+    addPlayerToGame(room, playerColor) {
+        if (!room.game) return false;
+        room.game.players.push(playerColor);
+        room.game.tokens[playerColor] = [-1, -1, -1, -1];
+        room.game.playerIds[playerColor] = room.players.find(p => p.color === playerColor).id;
+        return true;
     }
 
     leaveRoom(socketId) {

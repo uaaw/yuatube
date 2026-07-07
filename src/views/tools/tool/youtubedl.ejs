@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>YouTube ダウンローダー</title>
+  <script src="/js/tailwindcss.js"></script>
+  <link rel="stylesheet" href="/css/page.css">
+</head>
+<body class="bg-gray-900 text-white min-h-screen flex items-center justify-center">
+  <div style="width:100%;max-width:480px;padding:32px;background:rgba(20,20,20,0.95);border:1px solid rgba(88,101,242,0.2);border-radius:16px;">
+    <div class="text-center">
+      <a href="/tools" style="display:inline-flex;align-items:center;gap:6px;color:#b9bbbe;font-size:0.85rem;margin-bottom:16px;text-decoration:none;">
+        <span style="font-size:1.1rem;">&larr;</span> 戻る
+      </a>
+      <h1 style="font-size:2rem;font-weight:700;color:#fff;margin-bottom:12px;">YouTube ダウンローダー</h1>
+      <p style="color:#b9bbbe;font-size:0.9rem;margin-bottom:24px;">YouTubeの動画・音声をダウンロードします。</p>
+
+      <!-- Phase 1: URL Input -->
+      <input type="url" id="urlInput" placeholder="YouTubeのURLを入力" style="width:100%;margin-bottom:16px;">
+      <button id="fetchButton" style="width:100%;padding:12px;">情報を取得</button>
+
+      <!-- Loading Indicator -->
+      <div id="loadingIndicator" style="display:none;margin-top:16px;">
+        <span style="color:#b9bbbe;font-size:0.9rem;">情報を取得中...</span>
+      </div>
+
+      <!-- Error Message -->
+      <div id="errorMessage" style="display:none;margin-top:16px;padding:12px;background:rgba(237,66,69,0.15);border:1px solid rgba(237,66,69,0.4);border-radius:8px;color:#ed4245;font-size:0.85rem;"></div>
+
+      <!-- Phase 2: Video Info + Download (initially hidden) -->
+      <div id="videoInfo" style="display:none;margin-top:24px;text-align:left;">
+        <div style="display:flex;gap:16px;align-items:flex-start;margin-bottom:20px;">
+          <img id="thumbnail" src="" alt="Thumbnail" style="width:160px;height:90px;object-fit:cover;border-radius:8px;flex-shrink:0;">
+          <div style="flex:1;min-width:0;">
+            <h2 id="videoTitle" style="font-size:1rem;font-weight:600;color:#fff;margin:0 0 6px 0;line-height:1.3;word-break:break-word;"></h2>
+            <p id="channelName" style="color:#b9bbbe;font-size:0.85rem;margin:0 0 4px 0;"></p>
+            <p id="duration" style="color:#72767d;font-size:0.8rem;margin:0;"></p>
+          </div>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          <button class="download-btn" data-type="video+audio" style="width:100%;padding:12px;background:rgba(88,101,242,0.9);color:#fff;border:none;border-radius:8px;font-size:0.9rem;cursor:pointer;">動画+音声 (MP4)</button>
+          <button class="download-btn" data-type="video" style="width:100%;padding:12px;background:rgba(88,101,242,0.7);color:#fff;border:none;border-radius:8px;font-size:0.9rem;cursor:pointer;">動画のみ (MP4)</button>
+          <button class="download-btn" data-type="audio" style="width:100%;padding:12px;background:rgba(88,101,242,0.7);color:#fff;border:none;border-radius:8px;font-size:0.9rem;cursor:pointer;">音声のみ (M4A)</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function() {
+      const urlInput = document.getElementById('urlInput');
+      const fetchButton = document.getElementById('fetchButton');
+      const loadingIndicator = document.getElementById('loadingIndicator');
+      const errorMessage = document.getElementById('errorMessage');
+      const videoInfo = document.getElementById('videoInfo');
+      const thumbnail = document.getElementById('thumbnail');
+      const videoTitle = document.getElementById('videoTitle');
+      const channelName = document.getElementById('channelName');
+      const durationEl = document.getElementById('duration');
+
+      function formatDuration(seconds) {
+        const s = Math.floor(Number(seconds) || 0);
+        const h = Math.floor(s / 3600);
+        const m = Math.floor((s % 3600) / 60);
+        const sec = s % 60;
+        const mm = String(m).padStart(2, '0');
+        const ss = String(sec).padStart(2, '0');
+        if (h > 0) {
+          return h + ':' + mm + ':' + ss;
+        }
+        return mm + ':' + ss;
+      }
+
+      function showError(msg) {
+        errorMessage.style.display = 'block';
+        errorMessage.textContent = msg;
+      }
+
+      function hideError() {
+        errorMessage.style.display = 'none';
+        errorMessage.textContent = '';
+      }
+
+      fetchButton.addEventListener('click', async function() {
+        const url = urlInput.value.trim();
+        if (!url) {
+          showError('URLを入力してください');
+          return;
+        }
+        hideError();
+        videoInfo.style.display = 'none';
+        loadingIndicator.style.display = 'block';
+        fetchButton.disabled = true;
+
+        try {
+          const res = await fetch('/tools/ytdl/info?url=' + encodeURIComponent(url));
+          const data = await res.json();
+
+          if (!res.ok || data.error) {
+            showError(data.error || '情報の取得に失敗しました');
+            loadingIndicator.style.display = 'none';
+            fetchButton.disabled = false;
+            return;
+          }
+
+          // Populate video info
+          thumbnail.src = data.thumbnailUrl || '';
+          thumbnail.alt = data.title || 'Thumbnail';
+          videoTitle.textContent = data.title || '';
+          channelName.textContent = data.channelName || '';
+          durationEl.textContent = data.duration ? '再生時間: ' + formatDuration(data.duration) : '';
+
+          // Set download button URLs
+          const baseUrl = '/tools/ytdl/download?url=' + encodeURIComponent(url) + '&quality=best&type=';
+          document.querySelectorAll('.download-btn').forEach(function(btn) {
+            btn.onclick = function() {
+              window.location.href = baseUrl + encodeURIComponent(btn.getAttribute('data-type'));
+            };
+          });
+
+          videoInfo.style.display = 'block';
+        } catch (e) {
+          showError('通信エラーが発生しました');
+        } finally {
+          loadingIndicator.style.display = 'none';
+          fetchButton.disabled = false;
+        }
+      });
+
+      // Allow Enter key to trigger fetch
+      urlInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+          fetchButton.click();
+        }
+      });
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,54 @@
+{
+    "port": 8080,
+    "maxLastHeartBeat": 5000,
+    "gameWidth": 2000,
+    "gameHeight": 2000,
+    "scoreBoardLength": 10,
+    "spawnAreaWidth": 500,
+    "spawnAreaHeight": 500,
+    "spectatorSpeed": 8,
+    "defaultKeysPressed": {
+        "KEY_UP": false,
+        "KEY_LEFT": false,
+        "KEY_DOWN": false,
+        "KEY_RIGHT": false,
+        "KEY_SPACE": false
+    },
+    "defaultMouseAngle": 0,
+    "defaultMouseClicked":false,
+    "wall": {
+        "width": 25,
+        "height": 25,
+        "count": 10,
+        "minDimension": 35,
+        "maxDimension": 400
+    },
+    "track": {
+        "width": 4,
+        "height": 10,
+        "maxSpatialHashSize": 500
+    },
+    "bullet": {
+        "width": 1,
+        "height": 1,
+        "velocity": 9,
+        "timeToLive": 2500
+    },
+    "tank": {
+        "width": 85,
+        "height": 85,
+        "normalSpeed": 4,
+        "boostFactor": 1.5,
+        "boostMaxCapacity": 100,
+        "barrelLength": 65,
+        "ammoCapacity": 4,
+        "fireTimeWait": 250,
+        "timeToGainAmmo": 1000
+    },
+    "screenName":{
+        "maxLength": 12,
+        "blacklist": [
+            "someBadWord"
+        ]
+    }
+}

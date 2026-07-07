@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>匿名掲示板</title>
+    <script src="/js/tailwindcss.js"></script>
+    <link rel="stylesheet" href="/css/page.css">
+    <style>
+        .post-card {
+            background: #1f2937;
+            border-radius: 12px;
+            padding: 1rem;
+            margin-bottom: 0.75rem;
+            border: 1px solid #374151;
+        }
+        .post-card:hover {
+            border-color: #4b5563;
+        }
+        .post-username {
+            color: #60a5fa;
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+        .post-message {
+            color: #e5e7eb;
+            margin-top: 0.5rem;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        .post-time {
+            color: #6b7280;
+            font-size: 0.8rem;
+            margin-top: 0.5rem;
+        }
+        .post-delete {
+            color: #ef4444;
+            font-size: 0.75rem;
+            cursor: pointer;
+            opacity: 0.6;
+        }
+        .post-delete:hover {
+            opacity: 1;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-white min-h-screen">
+    <header class="bg-gray-800 border-b border-gray-700 p-4">
+        <div class="container mx-auto max-w-2xl flex items-center justify-between">
+            <a href="/sonota" class="text-gray-400 hover:text-white text-sm">← sonota</a>
+            <h1 class="text-lg font-bold">匿名掲示板</h1>
+            <span class="text-gray-500 text-sm"><%= posts.length %>件</span>
+        </div>
+    </header>
+
+    <main class="container mx-auto max-w-2xl p-4">
+        <!-- Post Form -->
+        <form method="POST" action="/sonota/bbs" class="mb-6">
+            <div class="bg-gray-800 rounded-xl p-4 border border-gray-700">
+                <input type="text" name="username" placeholder="ユーザーネーム" maxlength="20"
+                    class="w-full bg-gray-700 text-white rounded-lg px-4 py-2 mb-3 border border-gray-600 focus:border-blue-500 focus:outline-none"
+                    required>
+                <textarea name="message" placeholder="メッセージを入力..." maxlength="500" rows="3"
+                    class="w-full bg-gray-700 text-white rounded-lg px-4 py-2 mb-3 border border-gray-600 focus:border-blue-500 focus:outline-none resize-none"
+                    required></textarea>
+                <button type="submit"
+                    class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition">
+                    投稿する
+                </button>
+            </div>
+        </form>
+
+        <% if (error) { %>
+            <div class="bg-red-800 text-white p-3 rounded-lg mb-4 text-sm">
+                <%= error %>
+            </div>
+        <% } %>
+
+        <!-- Posts -->
+        <% if (posts.length === 0) { %>
+            <div class="text-center text-gray-500 py-10">
+                まだ投稿がありません。最初の投稿をしましょう！
+            </div>
+        <% } %>
+
+        <% posts.forEach(post => { %>
+            <div class="post-card">
+                <div class="flex items-center justify-between">
+                    <span class="post-username"><%= post.username %></span>
+                    <% if (post.userId === userId) { %>
+                    <form method="POST" action="/sonota/bbs/delete" style="display:inline;">
+                        <input type="hidden" name="id" value="<%= post.id %>">
+                        <button type="submit" class="post-delete" onclick="return confirm('この投稿を削除しますか？')">削除</button>
+                    </form>
+                    <% } %>
+                </div>
+                <div class="post-message"><%= post.message %></div>
+                <div class="post-time">
+                    <%= new Date(post.timestamp).toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' }) %>
+                </div>
+            </div>
+        <% }) %>
+    </main>
+</body>
+</html>

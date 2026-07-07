@@ -1724,7 +1724,7 @@
                 </div>
                 <div class="help-section">
                     <h4><i class="fas fa-sign-in-alt"></i> ルーム参加</h4>
-                    <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 1rem;">ルームIDを入力して参加</p>
+                    <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 1rem;">ルームIDを入力して参加（途中参加可）</p>
                     <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
                         <input type="text" id="joinPlayerName" placeholder="あなたの名前" style="flex: 1; padding: 0.75rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.1); color: white; font-size: 0.9rem;">
                         <input type="text" id="roomCodeInput" placeholder="ルームID" maxlength="6" style="width: 120px; padding: 0.75rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.1); color: white; font-size: 1.1rem; text-transform: uppercase; letter-spacing: 2px; text-align: center;">
@@ -3606,6 +3606,33 @@
             socket.on('playerJoined', ({ id, name, color }) => {
                 onlinePlayers.push({ id, name, color });
                 updatePlayerList();
+            });
+
+            socket.on('playerJoinedMidGame', ({ id, name, color }) => {
+                if (!players.includes(color)) players.push(color);
+                onlinePlayers.push({ id, name, color, disconnected: false });
+                setMessage(`${name}が途中参加しました！`);
+                updatePlayerList();
+                // Add token meshes for the new player
+                if (tokenMeshes[color]) return; // Already exists
+                const colorMap = {
+                    red: { dark: 0xa32011, light: 0xd22915 },
+                    green: { dark: 0x1c5a2d, light: 0x288140 },
+                    blue: { dark: 0x0b51c5, light: 0x1266f1 },
+                    yellow: { dark: 0x987102, light: 0xca9703 }
+                };
+                tokens[color] = [-1, -1, -1, -1];
+                tokenMeshes[color] = [];
+                for (let i = 0; i < 4; i++) {
+                    const token = createToken(colorMap[color].dark, colorMap[color].light);
+                    const hp = HOME_POSITIONS[color][i];
+                    const wp = gridToWorld(hp[0], hp[1]);
+                    token.position.set(wp.x, token.position.y, wp.z);
+                    token.userData = { player: color, index: i };
+                    boardGroup.add(token);
+                    tokenMeshes[color].push(token);
+                }
+                updateScoreboard();
             });
 
             socket.on('playerLeft', ({ playerId, name }) => {

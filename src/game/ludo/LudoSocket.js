@@ -2,6 +2,7 @@
 
 const LudoRoom = require('./LudoRoom');
 const LudoGame = require('./LudoGame');
+const { checkAuthFromHeaders, COOKIE_SECRET } = require('../../server/auth');
 
 function setupLudoSocket(io) {
     const roomManager = new LudoRoom();
@@ -9,6 +10,11 @@ function setupLudoSocket(io) {
     setInterval(() => roomManager.cleanup(), 60000);
 
     const ludo = io.of('/ludo');
+
+    ludo.use((socket, next) => {
+        if (checkAuthFromHeaders(socket.handshake.headers.cookie, COOKIE_SECRET)) return next();
+        next(new Error('Unauthorized'));
+    });
 
     ludo.on('connection', (socket) => {
         console.log(`[Ludo] Connected: ${socket.id}`);
@@ -34,53 +40,94 @@ function setupLudoSocket(io) {
             const room = result.room;
             socket.join(room.id);
 
-            socket.emit('roomJoined', {
-                roomId: room.id,
-                players: room.players.map(p => ({ id: p.id, name: p.name, color: p.color })),
-                maxPlayers: room.maxPlayers
-            });
-
-            socket.to(room.id).emit('playerJoined', {
-                id: socket.id,
-                name: playerName,
-                color: null
-            });
-
-            if (room.players.length === room.maxPlayers) {
-                room.status = 'colorSelect';
-                ludo.to(room.id).emit('startColorSelect', {
-                    players: room.players.map(p => ({ id: p.id, name: p.name })),
-                    availableColors: ['red', 'green', 'blue', 'yellow']
+            if (result.replaced) {
+                // Reconnected to a disconnected player's slot
+                socket.emit('roomJoined', {
+                    roomId: room.id,
+                    players: room.players.map(p => ({ id: p.id, name: p.name, color: p.color })),
+                    maxPlayers: room.maxPlayers,
+                    game: room.game ? room.game.getState() : null
                 });
+                socket.to(room.id).emit('playerReconnected', {
+                    playerId: socket.id,
+                    name: playerName
+                });
+            } else if (result.midGameJoin) {
+                // New player joining mid-game
+                const newPlayer = room.players.find(p => p.id === socket.id);
+                roomManager.addPlayerToGame(room, newPlayer.color);
+                socket.emit('gameStart', room.game.getState());
+                socket.to(room.id).emit('playerJoinedMidGame', {
+                    id: socket.id,
+                    name: playerName,
+                    color: newPlayer.color
+                });
+            } else {
+                // Normal join (waiting state)
+                socket.emit('roomJoined', {
+                    roomId: room.id,
+                    players: room.players.map(p => ({ id: p.id, name: p.name, color: p.color })),
+                    maxPlayers: room.maxPlayers
+                });
+                socket.to(room.id).emit('playerJoined', {
+                    id: socket.id,
+                    name: playerName,
+                    color: null
+                });
+                if (room.players.length === room.maxPlayers) {
+                    room.status = 'colorSelect';
+                    ludo.to(room.id).emit('startColorSelect', {
+                        players: room.players.map(p => ({ id: p.id, name: p.name })),
+                        availableColors: ['red', 'green', 'blue', 'yellow']
+                    });
+                }
             }
         });
 
         socket.on('reconnectRoom', ({ roomId, playerName }) => {
-            // Try roomId first, fall back to player name
+            // Primary lookup by roomId, fallback to player name
             let room = roomId ? roomManager.rooms.get(roomId) : null;
             if (!room) room = roomManager.getRoomByPlayerName(playerName);
             if (!room) {
                 socket.emit('error', { message: '再接続できるゲームがありません' });
                 return;
             }
+
             const disconnectedPlayer = room.players.find(p => p.name === playerName && p.disconnected);
-            if (!disconnectedPlayer) {
+            if (disconnectedPlayer) {
+                // Existing player reconnecting
+                const oldSocketId = disconnectedPlayer.id;
+                roomManager.reconnectPlayer(oldSocketId, socket.id);
+                socket.join(room.id);
+                socket.emit('roomJoined', {
+                    roomId: room.id,
+                    players: room.players.map(p => ({ id: p.id, name: p.name, color: p.color, disconnected: p.disconnected })),
+                    maxPlayers: room.maxPlayers,
+                    game: room.game ? room.game.getState() : null
+                });
+                socket.to(room.id).emit('playerReconnected', {
+                    playerId: socket.id,
+                    name: playerName
+                });
+            } else if (room.status === 'playing' && room.players.length < room.maxPlayers) {
+                // Room in progress but no matching disconnected player - treat as mid-game join
+                const joinResult = roomManager.joinRoom(room.id, socket.id, playerName);
+                if (joinResult.error) {
+                    socket.emit('error', { message: joinResult.error });
+                    return;
+                }
+                const newPlayer = room.players.find(p => p.id === socket.id);
+                roomManager.addPlayerToGame(room, newPlayer.color);
+                socket.join(room.id);
+                socket.emit('gameStart', room.game.getState());
+                socket.to(room.id).emit('playerJoinedMidGame', {
+                    id: socket.id,
+                    name: playerName,
+                    color: newPlayer.color
+                });
+            } else {
                 socket.emit('error', { message: '再接続できるゲームがありません' });
-                return;
             }
-            const oldSocketId = disconnectedPlayer.id;
-            roomManager.reconnectPlayer(oldSocketId, socket.id);
-            socket.join(room.id);
-            socket.emit('roomJoined', {
-                roomId: room.id,
-                players: room.players.map(p => ({ id: p.id, name: p.name, color: p.color, disconnected: p.disconnected })),
-                maxPlayers: room.maxPlayers,
-                game: room.game ? room.game.getState() : null
-            });
-            socket.to(room.id).emit('playerReconnected', {
-                playerId: socket.id,
-                name: playerName
-            });
         });
 
         socket.on('selectColor', ({ color }) => {

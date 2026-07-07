@@ -4,7 +4,12 @@ function setClient(newClient) {
     client = newClient;
 }
 
+function isReady() {
+    return !!client;
+}
+
 async function infoGet(id) {
+    if (!client) return;
     try {
         return await client.getInfo(id);
     } catch (error) {
@@ -13,6 +18,7 @@ async function infoGet(id) {
 }
 
 async function getVideoData(videoId) {
+    if (!client) throw new Error("YouTube client is not ready");
     const info = await client.getInfo(videoId);
     const sd = info.streaming_data;
     if (!sd) throw new Error("streaming_dataが取得できませんでした");
@@ -67,6 +73,7 @@ async function getVideoData(videoId) {
 
 async function search(q, page, limit) {
     if (!q) return;
+    if (!client) return null;
     try {
         return await client.search(q, { type: "all" });
     } catch (error) {
@@ -76,6 +83,7 @@ async function search(q, page, limit) {
 
 async function getComments(id) {
     if (!id) return;
+    if (!client) return null;
     try {
         return await client.getComments(id);
     } catch (error) {
@@ -84,6 +92,7 @@ async function getComments(id) {
 }
 
 async function getChannel(id) {
+    if (!client) return null;
     try {
         const channel = await client.getChannel(id);
 
@@ -166,12 +175,24 @@ function normalizeWatchNextFeed(rawFeed) {
     }).filter(Boolean);
 }
 
+async function download(videoId, options = {}) {
+    if (!client) throw new Error("YouTube client is not ready");
+    const opts = {
+        type: 'video+audio',
+        quality: 'best',
+        ...options
+    };
+    return await client.download(videoId, opts);
+}
+
 module.exports = {
     infoGet,
     getVideoData,
     setClient,
+    isReady,
     search,
     getComments,
     getChannel,
-    normalizeWatchNextFeed
+    normalizeWatchNextFeed,
+    download
 };
