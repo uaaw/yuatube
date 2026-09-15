@@ -5,7 +5,6 @@ const serverYt = require("../../server/youtube.js");
 
 const INVIDIOUS_SERVERS = [
     'https://invidious.f5.si',
-    'https://yt.omada.cafe',
     'https://invidious.ritoge.com',
     'https://invidious.darkness.services',
     'https://inv.zoomerville.com',
